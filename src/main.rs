@@ -3,6 +3,9 @@ use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
+mod lib;
+use lib::*;
+
 #[tokio::main]
 async fn main() {
     let channel = env::args()
@@ -15,7 +18,7 @@ async fn main() {
 
     let join_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.recv().await {
-            println!("{:?}", message);
+            message_handler(message).await;
         }
     });
 
