@@ -21,7 +21,7 @@ async fn main() {
 
     let join_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.recv().await {
-            message_handler(message, &startup_time).await;
+            message_handler(message, startup_time).await;
         }
     });
 
