@@ -9,5 +9,8 @@ pub async fn message_handler(message: ServerMessage) {
 }
 
 async fn print_chat_msg(msg: PrivmsgMessage) {
-    println!("{:?}", msg);
+    println!(
+        "{} {}: {}",
+        msg.server_timestamp, msg.sender.name, msg.message_text
+    );
 }
