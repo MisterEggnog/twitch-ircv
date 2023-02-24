@@ -12,7 +12,11 @@ pub async fn message_handler(message: ServerMessage, start_time: &DateTime<Utc>)
 async fn print_chat_msg(msg: PrivmsgMessage, start_time: &DateTime<Utc>) {
     let time_since_start = msg.server_timestamp.signed_duration_since(*start_time);
     println!(
-        "{} {}: {}",
-        time_since_start, msg.sender.name, msg.message_text
+        "{:02}:{:02}:{:02} {}: {}",
+        time_since_start.num_hours(),
+        time_since_start.num_minutes(),
+        time_since_start.num_seconds(),
+        msg.sender.name,
+        msg.message_text
     );
 }
