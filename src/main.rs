@@ -12,13 +12,16 @@ async fn main() {
         .nth(1)
         .expect("Must have channel name as first arg");
 
+    let startup_time = chrono::Utc::now();
+    println!("Logging started at {}", startup_time);
+
     let config = ClientConfig::default();
     let (mut incoming_messages, client) =
         TwitchIRCClient::<SecureTCPTransport, StaticLoginCredentials>::new(config);
 
     let join_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.recv().await {
-            message_handler(message).await;
+            message_handler(message, &startup_time).await;
         }
     });
 

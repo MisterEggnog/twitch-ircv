@@ -746,6 +746,7 @@ dependencies = [
 name = "twitch-chat-logger"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "tokio",
  "twitch-irc",
 ]
