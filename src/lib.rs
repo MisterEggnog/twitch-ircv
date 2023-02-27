@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::prelude::*;
 use twitch_irc::message::PrivmsgMessage;
 use twitch_irc::message::ServerMessage;
 
@@ -19,4 +19,12 @@ async fn print_chat_msg(msg: PrivmsgMessage, start_time: DateTime<Utc>) {
         msg.sender.name,
         msg.message_text
     );
+}
+
+#[tokio::test]
+async fn print_chat_msg_test() {
+    use chrono::Duration;
+    let start_time = Utc::now();
+    let time_offset = Duration::hours(11) + Duration::minutes(11) + Duration::seconds(11);
+    let message_time = start_time + time_offset;
 }
