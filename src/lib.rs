@@ -27,4 +27,7 @@ async fn print_chat_msg_test() {
     let start_time = Utc::now();
     let time_offset = Duration::hours(11) + Duration::minutes(11) + Duration::seconds(11);
     let message_time = start_time + time_offset;
+
+    let sender_name = "snapdragon";
+    let message_contents = "AAAAAAAAAAAAAAAAAA.";
 }
