@@ -24,10 +24,20 @@ async fn print_chat_msg(msg: PrivmsgMessage, start_time: DateTime<Utc>) {
 #[tokio::test]
 async fn print_chat_msg_test() {
     use chrono::Duration;
+    use twitch_irc::irc;
     let start_time = Utc::now();
     let time_offset = Duration::hours(11) + Duration::minutes(11) + Duration::seconds(11);
     let message_time = start_time + time_offset;
 
     let sender_name = "snapdragon";
     let message_contents = "AAAAAAAAAAAAAAAAAA.";
+
+    let irc_msg = irc![
+        "PRIVMSG",
+        "#channel",
+        sender_name,
+        message_time,
+        message_contents
+    ];
+    panic!("{:?}", irc_msg);
 }
