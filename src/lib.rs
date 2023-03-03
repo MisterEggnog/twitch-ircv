@@ -25,19 +25,26 @@ async fn print_chat_msg(msg: PrivmsgMessage, start_time: DateTime<Utc>) {
 async fn print_chat_msg_test() {
     use chrono::Duration;
     use twitch_irc::irc;
+    use twitch_irc::message::TwitchUserBasics;
+
     let start_time = Utc::now();
     let time_offset = Duration::hours(11) + Duration::minutes(11) + Duration::seconds(11);
     let message_time = start_time + time_offset;
 
-    let sender_name = "snapdragon";
+    let sender_name = "snapdragon".to_string();
+    let sender = TwitchUserBasics {
+        name: sender_name.clone(),
+        id: "".to_owned(),
+        login: "".to_owned(),
+    };
     let message_contents = "AAAAAAAAAAAAAAAAAA.";
 
-    let irc_msg = irc![
+    /*let irc_msg = irc![
         "PRIVMSG",
         "#channel",
         sender_name,
         message_time,
         message_contents
-    ];
-    panic!("{:?}", irc_msg);
+    ];*/
+    //panic!("{:?}", irc_msg);
 }
