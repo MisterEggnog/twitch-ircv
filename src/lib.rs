@@ -17,8 +17,8 @@ async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>
         out,
         "{:02}:{:02}:{:02} {}: {}",
         time_since_start.num_hours(),
-        time_since_start.num_minutes(),
-        time_since_start.num_seconds(),
+        time_since_start.num_minutes() % 60,
+        time_since_start.num_seconds() % 60,
         msg.sender.name,
         msg.message_text
     )
