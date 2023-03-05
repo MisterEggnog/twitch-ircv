@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 chrono = "0.4.23"
 tokio = { version = "1.25.0", features = ["full"] }
-twitch-irc = "5.0.0"
+twitch-irc = { git = "https://github.com/MisterEggnog/twitch-irc-rs" }
