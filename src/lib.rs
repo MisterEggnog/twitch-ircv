@@ -6,12 +6,12 @@ use twitch_irc::message::ServerMessage;
 
 pub async fn message_handler(message: ServerMessage, start_time: DateTime<Utc>) {
     match message {
-        ServerMessage::Privmsg(msg) => print_chat_msg(msg, start_time, stdout()).await,
+        ServerMessage::Privmsg(msg) => print_chat_msg(msg, start_time, &mut stdout()).await,
         _ => (),
     }
 }
 
-async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>, out: W) {
+async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>, out: &mut W) {
     let time_since_start = msg.server_timestamp.signed_duration_since(start_time);
     println!(
         "{:02}:{:02}:{:02} {}: {}",
