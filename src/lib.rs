@@ -39,12 +39,13 @@ async fn print_chat_msg_test() {
         name: sender_name.clone(),
         ..Default::default()
     };
-    let message_text_ = "AAAAAAAAAAAAAAAAAA.".to_string();
+    let message_str = "Bannana bread";
+    let message_text = String::from(message_str);
 
     let message = PrivmsgMessage {
         sender,
         server_timestamp: message_time,
-        message_text: message_text_.clone(),
+        message_text,
         ..Default::default()
     };
 
@@ -53,7 +54,7 @@ async fn print_chat_msg_test() {
     print_chat_msg(message, start_time, &mut output).await;
     assert_eq!(
         output,
-        format!("11:11:11 {sender_name}: {message_text_}\n").into_bytes(),
+        format!("11:11:11 {sender_name}: {message_str}\n").into_bytes(),
         "\n{}",
         String::from_utf8_lossy(&output)
     );
