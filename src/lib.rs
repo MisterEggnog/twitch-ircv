@@ -1,12 +1,15 @@
 use chrono::prelude::*;
 use std::io::prelude::*;
-use std::io::stdout;
 use twitch_irc::message::PrivmsgMessage;
 use twitch_irc::message::ServerMessage;
 
-pub async fn message_handler(message: ServerMessage, start_time: DateTime<Utc>) {
+pub async fn message_handler<W: Write>(
+    message: ServerMessage,
+    start_time: DateTime<Utc>,
+    out: &mut W,
+) {
     match message {
-        ServerMessage::Privmsg(msg) => print_chat_msg(msg, start_time, &mut stdout()).await,
+        ServerMessage::Privmsg(msg) => print_chat_msg(msg, start_time, out).await,
         _ => (),
     }
 }

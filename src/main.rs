@@ -1,4 +1,5 @@
 use std::env;
+use std::io::stdout;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
@@ -19,9 +20,10 @@ async fn main() {
     let (mut incoming_messages, client) =
         TwitchIRCClient::<SecureTCPTransport, StaticLoginCredentials>::new(config);
 
+    let mut stdout = stdout();
     let join_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.recv().await {
-            message_handler(message, startup_time).await;
+            message_handler(message, startup_time, &mut stdout).await;
         }
     });
 
