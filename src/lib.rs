@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use colored::Colorize;
 use std::io::prelude::*;
 use twitch_irc::message::PrivmsgMessage;
 use twitch_irc::message::ServerMessage;
@@ -16,13 +17,17 @@ pub async fn message_handler<W: Write>(
 
 async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>, out: &mut W) {
     let time_since_start = msg.server_timestamp.signed_duration_since(start_time);
+    let colored_name = match msg.name_color {
+        Some(color) => msg.sender.name.truecolor(color.r, color.g, color.b),
+        None => msg.sender.name.normal(),
+    };
     writeln!(
         out,
         "{:02}:{:02}:{:02} {}: {}",
         time_since_start.num_hours(),
         time_since_start.num_minutes() % 60,
         time_since_start.num_seconds() % 60,
-        msg.sender.name,
+        colored_name,
         msg.message_text
     )
     .expect("Not going to bother to check this lol");
