@@ -21,9 +21,9 @@ async fn parse_badges(badges: &[Badge]) -> (Option<&'static str>, Option<i64>) {
     let mut sub_badge_month = None;
     for badge in badges {
         match badge.name.as_str() {
-            "broadcaster" => channel_status = Some("📹"),
-            "moderator" => channel_status = Some("🗡️"),
-            "vip" => channel_status = Some("💎"),
+            "broadcaster" => channel_status = Some("📹 "),
+            "moderator" => channel_status = Some("🗡️ "),
+            "vip" => channel_status = Some("💎 "),
             "subscriber" => sub_badge_month = badge.version.parse().ok(),
             // TODO "partner"
             // TODO "staff"
@@ -40,7 +40,7 @@ async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>
         None => msg.sender.name.normal(),
     };
     let (channel_badge, _) = parse_badges(&msg.badges).await;
-    let channel_badge = channel_badge.map_or("".to_string(), |s| format!("{} ", s));
+    let channel_badge = channel_badge.unwrap_or("");
     writeln!(
         out,
         "{:02}:{:02}:{:02} {}{}: {}",
