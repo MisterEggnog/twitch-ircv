@@ -39,12 +39,15 @@ async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>
         Some(color) => msg.sender.name.truecolor(color.r, color.g, color.b),
         None => msg.sender.name.normal(),
     };
+    let (channel_badge, _) = parse_badges(&msg.badges).await;
+    let channel_badge = channel_badge.map_or("".to_string(), |s| format!("{} ", s));
     writeln!(
         out,
-        "{:02}:{:02}:{:02} {}: {}",
+        "{:02}:{:02}:{:02} {}{}: {}",
         time_since_start.num_hours(),
         time_since_start.num_minutes() % 60,
         time_since_start.num_seconds() % 60,
+        channel_badge,
         colored_name,
         msg.message_text
     )
