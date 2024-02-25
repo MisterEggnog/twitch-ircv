@@ -16,23 +16,6 @@ pub async fn message_handler<W: Write>(
     }
 }
 
-async fn parse_badges(badges: &[Badge]) -> (Option<&'static str>, Option<i64>) {
-    let mut channel_status = None;
-    let mut sub_badge_month = None;
-    for badge in badges {
-        match badge.name.as_str() {
-            "broadcaster" => channel_status = Some("📹"),
-            "moderator" => channel_status = Some("🗡️"),
-            "vip" => channel_status = Some("💎"),
-            "subscriber" => sub_badge_month = badge.version.parse().ok(),
-            // TODO "partner"
-            // TODO "staff"
-            _ => (),
-        }
-    }
-    (channel_status, sub_badge_month)
-}
-
 async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>, out: &mut W) {
     let time_since_start = msg.server_timestamp.signed_duration_since(start_time);
     let colored_name = match msg.name_color {
@@ -53,6 +36,24 @@ async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>
     )
     .expect("Not going to bother to check this lol");
 }
+
+async fn parse_badges(badges: &[Badge]) -> (Option<&'static str>, Option<i64>) {
+    let mut channel_status = None;
+    let mut sub_badge_month = None;
+    for badge in badges {
+        match badge.name.as_str() {
+            "broadcaster" => channel_status = Some("📹"),
+            "moderator" => channel_status = Some("🗡️"),
+            "vip" => channel_status = Some("💎"),
+            "subscriber" => sub_badge_month = badge.version.parse().ok(),
+            // TODO "partner"
+            // TODO "staff"
+            _ => (),
+        }
+    }
+    (channel_status, sub_badge_month)
+}
+
 
 #[tokio::test]
 async fn print_chat_msg_test() {
