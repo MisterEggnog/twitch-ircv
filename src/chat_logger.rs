@@ -37,6 +37,21 @@ async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>
     .expect("Not going to bother to check this lol");
 }
 
+#[derive(Debug, PartialEq)]
+enum ChannelStatus {
+    Broadcaster,
+    Moderator,
+    Vip,
+}
+
+#[derive(Default, Debug, PartialEq)]
+struct Badges {
+    channel_status: Option<ChannelStatus>,
+    sub_badge_month: Option<i32>,
+    // partner: bool, TODO
+    // staff: bool, TODO
+}
+
 async fn parse_badges(badges: &[Badge]) -> (Option<&'static str>, Option<i64>) {
     let mut channel_status = None;
     let mut sub_badge_month = None;
@@ -53,7 +68,6 @@ async fn parse_badges(badges: &[Badge]) -> (Option<&'static str>, Option<i64>) {
     }
     (channel_status, sub_badge_month)
 }
-
 
 #[tokio::test]
 async fn print_chat_msg_test() {
