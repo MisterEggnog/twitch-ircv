@@ -76,9 +76,9 @@ impl fmt::Display for ChannelStatus {
             f,
             "{}",
             match self {
-                ChannelStatus::Broadcaster => "a",
-                ChannelStatus::Moderator => "b",
-                ChannelStatus::Vip => "c",
+                ChannelStatus::Broadcaster => "📹",
+                ChannelStatus::Moderator => "🗡️",
+                ChannelStatus::Vip => "💎",
             }
         )
     }
@@ -127,7 +127,6 @@ fn display_channel_status() {
         ChannelStatus::Vip,
     ]
     .map(|x| format!("{}", x));
-    assert!(statuses.iter().all(|s| s.len() == 1));
     assert_ne!(statuses[0], statuses[1]);
     assert_ne!(statuses[1], statuses[2]);
     assert_ne!(statuses[0], statuses[2]);
