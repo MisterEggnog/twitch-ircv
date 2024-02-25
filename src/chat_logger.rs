@@ -1,5 +1,6 @@
 use chrono::prelude::*;
 use colored::Colorize;
+use std::fmt;
 use std::io::prelude::*;
 use twitch_irc::message::Badge;
 use twitch_irc::message::PrivmsgMessage;
@@ -69,6 +70,12 @@ async fn parse_badges(badges: &[Badge]) -> (Option<&'static str>, Option<i64>) {
     (channel_status, sub_badge_month)
 }
 
+impl fmt::Display for ChannelStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        unimplemented!()
+    }
+}
+
 #[tokio::test]
 async fn print_chat_msg_test() {
     use chrono::Duration;
@@ -102,6 +109,20 @@ async fn print_chat_msg_test() {
         "\n{}",
         String::from_utf8_lossy(&output)
     );
+}
+
+#[test]
+fn display_channel_status() {
+    let statuses = [
+        ChannelStatus::Broadcaster,
+        ChannelStatus::Moderator,
+        ChannelStatus::Vip,
+    ]
+    .map(|x| format!("{}", x));
+    assert!(statuses.iter().all(|s| s.len() == 1));
+    assert_ne!(statuses[0], statuses[1]);
+    assert_ne!(statuses[1], statuses[2]);
+    assert_ne!(statuses[0], statuses[2]);
 }
 
 #[tokio::test]
