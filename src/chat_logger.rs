@@ -72,7 +72,15 @@ async fn parse_badges(badges: &[Badge]) -> (Option<&'static str>, Option<i64>) {
 
 impl fmt::Display for ChannelStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        unimplemented!()
+        write!(
+            f,
+            "{}",
+            match self {
+                ChannelStatus::Broadcaster => "a",
+                ChannelStatus::Moderator => "b",
+                ChannelStatus::Vip => "c",
+            }
+        )
     }
 }
 
