@@ -5,8 +5,8 @@ use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
-mod lib;
-use lib::*;
+mod chat_logger;
+use chat_logger::*;
 
 #[tokio::main]
 async fn main() {
