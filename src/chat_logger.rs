@@ -23,7 +23,8 @@ async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>
         Some(color) => msg.sender.name.truecolor(color.r, color.g, color.b),
         None => msg.sender.name.normal(),
     };
-    let (channel_badge, _) = parse_badges(&msg.badges).await;
+    let channel_badge = parse_badges(&msg.badges).await;
+    let channel_badge = channel_badge.channel_status;
     let channel_badge = channel_badge.map_or("".to_string(), |s| format!("{}", s));
     writeln!(
         out,
@@ -53,7 +54,7 @@ struct Badges {
     // staff: bool, TODO
 }
 
-async fn parse_badges(badges: &[Badge]) -> (Option<ChannelStatus>, Option<i64>) {
+async fn parse_badges(badges: &[Badge]) -> Badges {
     let mut channel_status = None;
     let mut sub_badge_month = None;
     for badge in badges {
@@ -67,7 +68,10 @@ async fn parse_badges(badges: &[Badge]) -> (Option<ChannelStatus>, Option<i64>) 
             _ => (),
         }
     }
-    (channel_status, sub_badge_month)
+    Badges {
+        channel_status,
+        sub_badge_month,
+    }
 }
 
 impl fmt::Display for ChannelStatus {
@@ -146,7 +150,8 @@ async fn test_parse_badges() {
                 version: "1".to_string(),
             },
         ];
-        let (permission_badge, _) = parse_badges(&test_badges).await;
+        let permission_badge = parse_badges(&test_badges).await;
+        let permission_badge = permission_badge.channel_status;
         assert!(permission_badge.is_some());
     }
 
@@ -160,6 +165,7 @@ async fn test_parse_badges() {
             version: "90210".to_string(),
         },
     ];
-    let (_, sub_badge) = parse_badges(&test_badges).await;
+    let sub_badge = parse_badges(&test_badges).await;
+    let sub_badge = sub_badge.sub_badge_month;
     assert_eq!(sub_badge, Some(90210));
 }
