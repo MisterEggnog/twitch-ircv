@@ -88,6 +88,12 @@ impl fmt::Display for ChannelStatus {
     }
 }
 
+impl fmt::Display for Badges {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
 #[tokio::test]
 async fn print_chat_msg_test() {
     use chrono::Duration;
@@ -134,6 +140,44 @@ fn display_channel_status() {
     assert_ne!(statuses[0], statuses[1]);
     assert_ne!(statuses[1], statuses[2]);
     assert_ne!(statuses[0], statuses[2]);
+}
+
+#[test]
+fn display_badges() {
+    // TODO Add more cases
+    //
+    // We are NOT using default because we want to remember to update these tests
+    // For each additional case.
+    //
+    // My idea is to make a iterator for every future case we add to the badges
+    // Then zip those together and iterate / test each of those simultaneously.
+    let statuses = [
+        ChannelStatus::Broadcaster,
+        ChannelStatus::Moderator,
+        ChannelStatus::Vip,
+    ]
+    .map(|x| (format!("{}", &x), x))
+    .map(|(b, a)| (a, b));
+    let sub_badge_month = None;
+
+    // Base case no badges
+    assert!(Badges {
+        channel_status: None,
+        sub_badge_month
+    }
+    .to_string()
+    .is_empty());
+
+    for (status, expected) in statuses {
+        let badge = Badges {
+            channel_status: Some(status),
+            sub_badge_month,
+        };
+        assert!(
+            badge.to_string().contains(&expected),
+            "Expected {badge:?} to hold {expected:?}"
+        );
+    }
 }
 
 #[tokio::test]
