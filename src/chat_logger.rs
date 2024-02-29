@@ -24,8 +24,6 @@ async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>
         None => msg.sender.name.normal(),
     };
     let channel_badge = parse_badges(&msg.badges).await;
-    let channel_badge = channel_badge.channel_status;
-    let channel_badge = channel_badge.map_or("".to_string(), |s| format!("{}", s));
     writeln!(
         out,
         "{:02}:{:02}:{:02} {}{}: {}",
