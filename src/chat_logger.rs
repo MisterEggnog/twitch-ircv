@@ -158,21 +158,14 @@ fn display_badges() {
         ChannelStatus::Moderator,
         ChannelStatus::Vip,
     ]
-    .map(|x| (x, format!("{}", &x)));
-    //.map(|(b, a)| (a, b));
+    .into_iter()
+    .map(|x| (Some(x), format!("{}", &x)))
+    .chain(std::iter::once((None, "".to_string())));
     let sub_badge_month = None;
-
-    // Base case no badges
-    assert!(Badges {
-        channel_status: None,
-        sub_badge_month
-    }
-    .to_string()
-    .is_empty());
 
     for (status, expected) in statuses {
         let badge = Badges {
-            channel_status: Some(status),
+            channel_status: status,
             sub_badge_month,
         };
         assert!(
