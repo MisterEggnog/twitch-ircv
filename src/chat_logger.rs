@@ -37,7 +37,7 @@ async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>
     .expect("Not going to bother to check this lol");
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ChannelStatus {
     Broadcaster,
     Moderator,
@@ -158,8 +158,8 @@ fn display_badges() {
         ChannelStatus::Moderator,
         ChannelStatus::Vip,
     ]
-    .map(|x| (format!("{}", &x), x))
-    .map(|(b, a)| (a, b));
+    .map(|x| (x, format!("{}", &x)));
+    //.map(|(b, a)| (a, b));
     let sub_badge_month = None;
 
     // Base case no badges
