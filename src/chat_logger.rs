@@ -48,7 +48,7 @@ enum ChannelStatus {
 struct Badges {
     channel_status: Option<ChannelStatus>,
     sub_badge_month: Option<i32>,
-    // partner: bool, TODO
+    partner: bool,
     // staff: bool, TODO
 }
 
@@ -69,6 +69,7 @@ async fn parse_badges(badges: &[Badge]) -> Badges {
     Badges {
         channel_status,
         sub_badge_month,
+        partner: false,
     }
 }
 
@@ -161,17 +162,21 @@ fn display_badges() {
     .into_iter()
     .map(|x| (Some(x), format!("{}", &x)))
     .chain(std::iter::once((None, "".to_string())));
+    let partner_badge = [(false, ""), (true, "✅")].into_iter();
     let sub_badge_month = None;
 
-    for (status, expected) in statuses {
+    for ((status, status_expected), (partner, partner_expected)) in statuses.zip(partner_badge) {
         let badge = Badges {
             channel_status: status,
             sub_badge_month,
+            partner,
         };
+        let badge_str = badge.to_string();
         assert!(
-            badge.to_string().contains(&expected),
-            "Expected {badge:?} to hold {expected:?}"
+            badge_str.contains(&status_expected),
+            "Expected {badge:?} to hold {status_expected:?}"
         );
+        assert!(badge_str.contains(&partner_expected));
     }
 }
 
