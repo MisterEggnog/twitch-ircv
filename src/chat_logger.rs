@@ -55,13 +55,14 @@ struct Badges {
 async fn parse_badges(badges: &[Badge]) -> Badges {
     let mut channel_status = None;
     let mut sub_badge_month = None;
+    let mut partner = false;
     for badge in badges {
         match badge.name.as_str() {
             "broadcaster" => channel_status = Some(ChannelStatus::Broadcaster),
             "moderator" => channel_status = Some(ChannelStatus::Moderator),
             "vip" => channel_status = Some(ChannelStatus::Vip),
             "subscriber" => sub_badge_month = badge.version.parse().ok(),
-            // TODO "partner"
+            "partner" => partner = true,
             // TODO "staff"
             _ => (),
         }
@@ -69,7 +70,7 @@ async fn parse_badges(badges: &[Badge]) -> Badges {
     Badges {
         channel_status,
         sub_badge_month,
-        partner: false,
+        partner,
     }
 }
 
