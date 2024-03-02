@@ -44,9 +44,13 @@ enum ChannelStatus {
     Vip,
 }
 
+/// The badges in a chat message.
+///
+/// This type is in development and may change.
 #[derive(Default, Debug, PartialEq)]
 struct Badges {
     channel_status: Option<ChannelStatus>,
+    /// This is the count of the badge, not the total months subbed.
     sub_badge_month: Option<i32>,
     partner: bool,
     // staff: bool, TODO
