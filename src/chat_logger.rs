@@ -50,7 +50,7 @@ enum ChannelStatus {
 /// The badges in a chat message.
 ///
 /// This type is in development and may change.
-#[derive(Default, Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 struct Badges {
     channel_status: Option<ChannelStatus>,
     /// This is the count of the badge, not the total months subbed.
