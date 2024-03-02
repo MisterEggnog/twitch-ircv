@@ -215,4 +215,17 @@ async fn test_parse_badges() {
     let sub_badge = parse_badges(&test_badges).await;
     let sub_badge = sub_badge.sub_badge_month;
     assert_eq!(sub_badge, Some(90210));
+
+    let test_badges = [
+        Badge {
+            name: "partner".to_string(),
+            version: "1".to_string(),
+        },
+        Badge {
+            name: "west".to_string(),
+            version: "90".to_string(),
+        },
+    ];
+    let sub_badge = parse_badges(&test_badges).await;
+    assert!(sub_badge.partner);
 }
