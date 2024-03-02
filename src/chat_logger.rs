@@ -90,6 +90,9 @@ impl fmt::Display for ChannelStatus {
 impl fmt::Display for Badges {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Extend this with more checks as badges are added
+        if self.partner {
+            write!(f, "✅")?;
+        }
         if let Some(ch) = &self.channel_status {
             write!(f, "{ch}")?;
         }
