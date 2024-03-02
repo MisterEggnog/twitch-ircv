@@ -37,6 +37,9 @@ async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>
     .expect("Not going to bother to check this lol");
 }
 
+/// Broadcaster/Moderator/Vip
+///
+/// To my understanding these are mutulally exclusive.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ChannelStatus {
     Broadcaster,
