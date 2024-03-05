@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 chrono = "0.4.23"
 colored = "2.0.0"
+either = "1.10.0"
 tokio = { version = "1.25.0", features = ["full"] }
 twitch-irc = { git = "https://github.com/MisterEggnog/twitch-irc-rs" }
