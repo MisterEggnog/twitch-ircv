@@ -47,6 +47,12 @@ enum ChannelStatus {
     Vip,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Subscriber {
+    Month(i32),
+    Founder,
+}
+
 /// The badges in a chat message.
 ///
 /// This type is in development and may change.
@@ -54,7 +60,7 @@ enum ChannelStatus {
 struct Badges {
     channel_status: Option<ChannelStatus>,
     /// This is the count of the badge, not the total months subbed.
-    sub_badge_month: Option<i32>,
+    sub_badge_month: Option<Subscriber>,
     partner: bool,
     // staff: bool, TODO
 }
@@ -68,7 +74,7 @@ async fn parse_badges(badges: &[Badge]) -> Badges {
             "broadcaster" => channel_status = Some(ChannelStatus::Broadcaster),
             "moderator" => channel_status = Some(ChannelStatus::Moderator),
             "vip" => channel_status = Some(ChannelStatus::Vip),
-            "subscriber" => sub_badge_month = badge.version.parse().ok(),
+            "subscriber" => sub_badge_month = badge.version.parse().ok().map(Subscriber::Month),
             "partner" => partner = true,
             // TODO "staff"
             _ => (),
@@ -222,7 +228,7 @@ async fn test_parse_badges() {
     ];
     let sub_badge = parse_badges(&test_badges).await;
     let sub_badge = sub_badge.sub_badge_month;
-    assert_eq!(sub_badge, Some(90210));
+    assert_eq!(sub_badge, Some(Subscriber::Month(90210)));
 
     let test_badges = [
         Badge {
