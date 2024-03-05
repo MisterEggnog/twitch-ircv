@@ -75,6 +75,7 @@ async fn parse_badges(badges: &[Badge]) -> Badges {
             "moderator" => channel_status = Some(ChannelStatus::Moderator),
             "vip" => channel_status = Some(ChannelStatus::Vip),
             "subscriber" => sub_badge_month = badge.version.parse().ok().map(Subscriber::Month),
+            "founder" => sub_badge_month = Some(Subscriber::Founder),
             "partner" => partner = true,
             // TODO "staff"
             _ => (),
