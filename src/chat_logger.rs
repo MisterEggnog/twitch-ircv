@@ -242,4 +242,11 @@ async fn test_parse_badges() {
     ];
     let sub_badge = parse_badges(&test_badges).await;
     assert!(sub_badge.partner);
+
+    let test_badges = [Badge {
+        name: "founder".to_string(),
+        version: "0".to_string(),
+    }];
+    let sub_badge = parse_badges(&test_badges).await;
+    assert_eq!(Some(Subscriber::Founder), sub_badge.sub_badge_month);
 }
