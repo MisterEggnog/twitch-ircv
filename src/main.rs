@@ -1,4 +1,3 @@
-#![allow(special_module_name)]
 use std::env;
 use std::io::stdout;
 use twitch_irc::login::StaticLoginCredentials;
