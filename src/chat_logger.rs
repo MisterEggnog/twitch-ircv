@@ -150,6 +150,21 @@ async fn print_chat_msg_test() {
     );
 }
 
+#[tokio::test]
+async fn does_not_panic_with_broken_pipe() {
+    use std::io;
+    struct PanicsBrokenPipe;
+    impl Write for PanicsBrokenPipe {
+        fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+            Err(From::from(io::ErrorKind::BrokenPipe))
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+}
+
 #[test]
 fn display_channel_status() {
     let statuses = [
