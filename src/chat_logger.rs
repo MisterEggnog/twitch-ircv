@@ -163,6 +163,11 @@ async fn does_not_panic_with_broken_pipe() {
             Ok(())
         }
     }
+
+    let message = PrivmsgMessage::default();
+    let start_time = Utc::now();
+    let mut output = PanicsBrokenPipe;
+    print_chat_msg(message, start_time, &mut output).await;
 }
 
 #[test]
