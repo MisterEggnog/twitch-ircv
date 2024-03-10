@@ -26,7 +26,7 @@ async fn main() -> io::Result<()> {
         while let Some(message) = incoming_messages.recv().await {
             if !message_handler(message, startup_time, &mut stdout)
                 .await
-                .unwrap()
+                .expect("Failed to write message")
             {
                 break;
             }
