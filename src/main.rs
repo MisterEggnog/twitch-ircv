@@ -23,15 +23,11 @@ async fn main() -> io::Result<()> {
 
     let mut stdout = stdout();
     let join_handle = tokio::spawn(async move {
-        loop {
-            if let Some(message) = incoming_messages.recv().await {
-                if !message_handler(message, startup_time, &mut stdout)
-                    .await
-                    .unwrap()
-                {
-                    break;
-                }
-            } else {
+        while let Some(message) = incoming_messages.recv().await {
+            if !message_handler(message, startup_time, &mut stdout)
+                .await
+                .unwrap()
+            {
                 break;
             }
         }
