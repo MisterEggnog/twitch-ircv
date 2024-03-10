@@ -232,7 +232,7 @@ fn display_badges() {
             badge_str.contains(&status_expected),
             "Expected {badge:?} to hold {status_expected:?}"
         );
-        assert!(badge_str.contains(&partner_expected));
+        assert!(badge_str.contains(partner_expected));
     }
 }
 
