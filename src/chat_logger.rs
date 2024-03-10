@@ -19,7 +19,12 @@ pub async fn message_handler<W: Write>(
     if let Err(err) = msg {
         if err.kind() != io::ErrorKind::BrokenPipe {
             eprintln!("Write failed with {}", err);
+            Err(err)
+        } else {
+            Ok(true)
         }
+    } else {
+        Ok(false)
     }
 }
 
