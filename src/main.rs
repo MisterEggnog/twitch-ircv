@@ -1,5 +1,4 @@
 use std::env;
-use std::io;
 use std::io::stdout;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::TwitchIRCClient;
@@ -9,7 +8,7 @@ mod chat_logger;
 use chat_logger::*;
 
 #[tokio::main]
-async fn main() -> io::Result<()> {
+async fn main() {
     let channel = env::args()
         .nth(1)
         .expect("Must have channel name as first arg");
@@ -36,6 +35,4 @@ async fn main() -> io::Result<()> {
     client.join(channel).unwrap();
 
     join_handle.await.unwrap();
-
-    Ok(())
 }
