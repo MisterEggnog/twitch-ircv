@@ -11,7 +11,7 @@ pub async fn message_handler<W: Write>(
     message: ServerMessage,
     start_time: DateTime<Utc>,
     out: &mut W,
-) {
+) -> io::Result<bool> {
     let msg = match message {
         ServerMessage::Privmsg(msg) => print_chat_msg(msg, start_time, out).await,
         _ => Ok(()),
@@ -160,7 +160,7 @@ async fn print_chat_msg_test() {
 }
 
 #[tokio::test]
-async fn does_not_panic_with_broken_pipe() {
+async fn does_not_panic_with_broken_pipe() -> io::Result<()> {
     use std::io;
     struct PanicsBrokenPipe;
     impl Write for PanicsBrokenPipe {
@@ -176,7 +176,9 @@ async fn does_not_panic_with_broken_pipe() {
     let message = ServerMessage::Privmsg(PrivmsgMessage::default());
     let start_time = Utc::now();
     let mut output = PanicsBrokenPipe;
-    message_handler(message, start_time, &mut output).await;
+    let res = message_handler(message, start_time, &mut output).await?;
+    assert!(res);
+    Ok(())
 }
 
 #[test]
