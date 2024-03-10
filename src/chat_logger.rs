@@ -157,7 +157,9 @@ async fn print_chat_msg_test() {
 
     let mut output = vec![];
 
-    print_chat_msg(message, start_time, &mut output).await;
+    print_chat_msg(message, start_time, &mut output)
+        .await
+        .expect("Write to vec shouldn't fail");
     assert_eq!(
         output,
         format!("11:11:11 {sender_name}: {message_str}\n").into_bytes(),
