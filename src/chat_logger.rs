@@ -21,10 +21,12 @@ pub async fn message_handler<W: Write>(
             eprintln!("Write failed with {}", err);
             Err(err)
         } else {
-            Ok(true)
+            // Exit because pipe closed
+            Ok(false)
         }
     } else {
-        Ok(false)
+        // Keep going
+        Ok(true)
     }
 }
 
@@ -182,7 +184,7 @@ async fn does_not_panic_with_broken_pipe() -> io::Result<()> {
     let start_time = Utc::now();
     let mut output = PanicsBrokenPipe;
     let res = message_handler(message, start_time, &mut output).await?;
-    assert!(res);
+    assert!(!res);
     Ok(())
 }
 
