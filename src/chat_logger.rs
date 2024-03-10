@@ -1,6 +1,7 @@
 use chrono::prelude::*;
 use colored::Colorize;
 use std::fmt;
+use std::io;
 use std::io::prelude::*;
 use twitch_irc::message::Badge;
 use twitch_irc::message::PrivmsgMessage;
@@ -11,13 +12,22 @@ pub async fn message_handler<W: Write>(
     start_time: DateTime<Utc>,
     out: &mut W,
 ) {
-    match message {
+    let msg = match message {
         ServerMessage::Privmsg(msg) => print_chat_msg(msg, start_time, out).await,
-        _ => (),
+        _ => Ok(()),
+    };
+    if let Err(err) = msg {
+        if err.kind() != io::ErrorKind::BrokenPipe {
+            eprintln!("Write failed with {}", err);
+        }
     }
 }
 
-async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>, out: &mut W) {
+async fn print_chat_msg<W: Write>(
+    msg: PrivmsgMessage,
+    start_time: DateTime<Utc>,
+    out: &mut W,
+) -> io::Result<()> {
     let time_since_start = msg.server_timestamp.signed_duration_since(start_time);
     let colored_name = match msg.name_color {
         Some(color) => msg.sender.name.truecolor(color.r, color.g, color.b),
@@ -34,7 +44,6 @@ async fn print_chat_msg<W: Write>(msg: PrivmsgMessage, start_time: DateTime<Utc>
         colored_name,
         msg.message_text
     )
-    .expect("Not going to bother to check this lol");
 }
 
 /// Broadcaster/Moderator/Vip
