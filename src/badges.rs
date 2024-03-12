@@ -1,9 +1,10 @@
+//! Types and Parsing for Twitch Badges
 use std::fmt;
 use twitch_irc::message::Badge;
 
 /// Broadcaster/Moderator/Vip
 ///
-/// To my understanding these are mutulally exclusive.
+/// To my understanding these are mutually exclusive.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ChannelStatus {
     Broadcaster,
@@ -11,6 +12,12 @@ pub enum ChannelStatus {
     Vip,
 }
 
+/// Subscriber badge info
+///
+/// Generally the months subscribed can be parsed from the version number of
+/// the badge.
+/// This does not work for Founder badges, as for some reason the version number
+/// is listed as `"0"`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Subscriber {
     Month(i32),
@@ -23,12 +30,12 @@ pub enum Subscriber {
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Badges {
     pub channel_status: Option<ChannelStatus>,
-    /// This is the count of the badge, not the total months subbed.
     pub sub_badge_month: Option<Subscriber>,
     pub partner: bool,
     // staff: bool, TODO
 }
 
+/// Parses a [Badge] array into [Badges] struct
 pub async fn parse_badges(badges: &[Badge]) -> Badges {
     let mut channel_status = None;
     let mut sub_badge_month = None;
