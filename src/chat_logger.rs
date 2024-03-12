@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use twitch_irc::message::PrivmsgMessage;
 use twitch_irc::message::ServerMessage;
 
-use crate::badges::*;
+use crate::badges::parse_badges;
 
 pub async fn message_handler<W: Write>(
     message: ServerMessage,
