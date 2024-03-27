@@ -7,6 +7,7 @@ use twitch_irc::{ClientConfig, SecureTCPTransport};
 
 mod badges;
 mod chat_logger;
+mod logging;
 use chat_logger::*;
 
 #[tokio::main]
