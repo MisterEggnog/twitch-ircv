@@ -5,7 +5,7 @@ use twitch_irc::message::ServerMessage;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
-pub async fn main_prime<F>(func: F) -> Result<(), Box<dyn Error>>
+pub async fn for_each_message<F>(func: F) -> Result<(), Box<dyn Error>>
 where
     F: Fn(ServerMessage) + std::marker::Send + 'static,
 {
