@@ -5,7 +5,10 @@ use twitch_irc::message::ServerMessage;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
-pub async fn main_prime() -> Result<(), Box<dyn Error>> {
+pub async fn main_prime<F>(func: F) -> Result<(), Box<dyn Error>>
+where
+    F: Fn(ServerMessage) + std::marker::Send + 'static,
+{
     let channel = env::args()
         .nth(1)
         .expect("Must have channel name as first arg");
@@ -16,9 +19,7 @@ pub async fn main_prime() -> Result<(), Box<dyn Error>> {
 
     let join_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.recv().await {
-            if let ServerMessage::Privmsg(message) = message {
-                println!("{} {:?}", message.sender.name, message.badges);
-            }
+            func(message);
         }
     });
 
