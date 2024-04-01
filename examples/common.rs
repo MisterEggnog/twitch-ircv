@@ -5,8 +5,7 @@ use twitch_irc::message::ServerMessage;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+pub async fn main_prime() -> Result<(), Box<dyn Error>> {
     let channel = env::args()
         .nth(1)
         .expect("Must have channel name as first arg");
