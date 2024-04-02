@@ -1,11 +1,10 @@
 use std::env;
-use std::error::Error;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::ServerMessage;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
-pub async fn for_each_message<F>(func: F) -> Result<(), Box<dyn Error>>
+pub async fn for_each_message<F>(func: F)
 where
     F: Fn(ServerMessage) + std::marker::Send + 'static,
 {
@@ -23,7 +22,6 @@ where
         }
     });
 
-    client.join(channel)?;
-    join_handle.await?;
-    Ok(())
+    client.join(channel).expect("Unable to join the channel");
+    join_handle.await.unwrap();
 }
