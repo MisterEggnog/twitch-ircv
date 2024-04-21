@@ -4,7 +4,7 @@ use twitch_irc::message::ServerMessage;
 /// Log messages in IRC format
 ///
 /// Logs PRIVMSG, USERNOTICE, CLEARCHAT, & CLEARMSG.
-async pub fn log_v0<W: Write>(message: ServerMessage, out: &mut W) {}
+pub async fn log_v0<W: Write>(message: ServerMessage, out: &mut W) {}
 
 #[tokio::test]
 async fn log_v0_tests() {}
