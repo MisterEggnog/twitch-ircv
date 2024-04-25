@@ -21,10 +21,10 @@ async fn test_no_ping() -> Result<(), Box<dyn Error>> {
     let f = BufReader::new(f);
     let irc_lines: Vec<String> = f.lines().map(|s| s.unwrap()).collect();
 
-    let valid_irc_lines: Vec<String> = irc_lines
+    let valid_irc_lines: Vec<IRCMessage> = irc_lines
         .iter()
         .filter(|&s| valid_irc(s))
-        .map(String::from)
+        .map(|s| IRCMessage::parse(s).expect("This should be valid irc"))
         .collect();
 
     let mut buff = Cursor::new(vec![]);
@@ -34,7 +34,12 @@ async fn test_no_ping() -> Result<(), Box<dyn Error>> {
         log_v0(msg, &mut buff).await;
     }
 
-    let output_lines: Vec<String> = buff.lines().map(|s| s.unwrap()).collect();
+    buff.set_position(0);
+
+    let output_lines: Vec<IRCMessage> = buff
+        .lines()
+        .map(|s| IRCMessage::parse(&s.unwrap()).expect("This should be valid irc"))
+        .collect();
 
     assert_eq!(output_lines.len(), valid_irc_lines.len());
     for (output, expected) in output_lines.iter().zip(valid_irc_lines.iter()) {
