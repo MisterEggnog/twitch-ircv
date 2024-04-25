@@ -5,7 +5,16 @@ use twitch_irc::message::ServerMessage;
 /// Log messages in IRC format
 ///
 /// Logs PRIVMSG, USERNOTICE, CLEARCHAT, & CLEARMSG.
-pub async fn log_v0<W: Write>(message: ServerMessage, out: &mut W) {}
+pub async fn log_v0<W: Write>(message: ServerMessage, out: &mut W) {
+    match message {
+        ServerMessage::Privmsg(msg) => writeln!(out, "{}", msg.source.as_raw_irc()),
+        ServerMessage::UserNotice(msg) => writeln!(out, "{}", msg.source.as_raw_irc()),
+        ServerMessage::ClearChat(msg) => writeln!(out, "{}", msg.source.as_raw_irc()),
+        ServerMessage::ClearMsg(msg) => writeln!(out, "{}", msg.source.as_raw_irc()),
+        _ => Ok(()),
+    }
+    .unwrap();
+}
 
 #[tokio::test]
 async fn log_v0_privmsg() {
