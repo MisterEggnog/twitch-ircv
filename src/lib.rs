@@ -2,3 +2,4 @@
 pub mod badges;
 pub mod chat_logger;
 pub mod logging;
+pub mod args;
