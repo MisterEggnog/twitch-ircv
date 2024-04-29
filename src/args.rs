@@ -4,9 +4,9 @@ use argh::FromArgs;
 #[derive(FromArgs)]
 pub struct Args {
 	#[argh(positional)]
-	channel_name: String,
+	pub channel_name: String,
 
 	/// file to write irc log to.
 	#[argh(option, short = 'o')]
-	log_file: Option<String>,
+	pub log_file: Option<String>,
 }
