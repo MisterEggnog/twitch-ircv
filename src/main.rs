@@ -1,24 +1,18 @@
-use std::env;
 use std::io::stdout;
-use std::process::ExitCode;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
+mod args;
 mod badges;
 mod chat_logger;
 mod logging;
 use chat_logger::*;
 
 #[tokio::main]
-async fn main() -> ExitCode {
-    let channel = match env::args().nth(1) {
-        Some(n) => n,
-        None => {
-            eprintln!("Must have channel name as first arg");
-            return ExitCode::FAILURE;
-        }
-    };
+async fn main() {
+    let args: args::Args = argh::from_env();
+    let channel = args.channel_name;
 
     let startup_time = chrono::Utc::now();
     println!("Logging started at {}", startup_time);
@@ -42,6 +36,4 @@ async fn main() -> ExitCode {
     client.join(channel).unwrap();
 
     join_handle.await.unwrap();
-
-    ExitCode::SUCCESS
 }
