@@ -7,6 +7,7 @@ mod args;
 mod badges;
 mod chat_logger;
 mod logging;
+mod setup;
 use chat_logger::*;
 
 #[tokio::main]
