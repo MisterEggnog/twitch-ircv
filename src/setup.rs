@@ -1,10 +1,15 @@
 use std::io::stdout;
+use std::sync::mpsc::Sender;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::ServerMessage;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
 use crate::chat_logger::*;
+
+enum IRCSink {
+    Stdout(Sender<ServerMessage>),
+}
 
 pub async fn setup_irc_client<F>(channel: String, message_dest: F)
 where
