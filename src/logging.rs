@@ -5,7 +5,6 @@ use twitch_irc::message::ServerMessage;
 /// Log messages in IRC format
 ///
 /// Logs PRIVMSG, USERNOTICE, CLEARCHAT, & CLEARMSG.
-#[allow(dead_code)]
 pub async fn log_v0<W: Write>(message: ServerMessage, out: &mut W) {
     match message {
         ServerMessage::Privmsg(msg) => writeln!(out, "{}", msg.source.as_raw_irc()),
