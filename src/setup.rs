@@ -1,4 +1,5 @@
-use std::io::stdout;
+use std::fs::File;
+use std::io::{stdout, BufWriter};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::JoinHandle;
 use twitch_irc::login::StaticLoginCredentials;
@@ -8,16 +9,33 @@ use twitch_irc::{ClientConfig, SecureTCPTransport};
 
 use crate::args::Args;
 use crate::chat_logger::message_handler;
+use crate::logging::log_v0;
 
 pub type TwitchClient = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
 
 pub async fn init(args: Args) {
     let (incoming_messages, client) = build_irc_client();
-    let join_handle = setup_fancy_output(incoming_messages);
-
     client.join(args.channel_name).unwrap();
 
-    join_handle.await.unwrap();
+    if let Some(file_path) = args.log_file {
+        let file = File::create(file_path).unwrap();
+        let mut file = BufWriter::new(file);
+
+        let (handle, rx1, mut rx2) = receiver_splitter(incoming_messages);
+        let fancy_task = setup_fancy_output(rx1);
+        let log_task = tokio::spawn(async move {
+            while let Some(message) = rx2.recv().await {
+                log_v0(message, &mut file).await;
+            }
+        });
+        let (task1, task2, task3) = tokio::join!(handle, fancy_task, log_task);
+        task1.unwrap();
+        task2.unwrap();
+        task3.unwrap();
+    } else {
+        let join_handle = setup_fancy_output(incoming_messages);
+        join_handle.await.unwrap();
+    }
 }
 
 fn receiver_splitter(
