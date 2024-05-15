@@ -8,7 +8,7 @@ use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
 use crate::args::Args;
-use crate::chat_logger::message_handler;
+use crate::pretty_print::message_handler;
 use crate::logging::log_v0;
 
 pub type TwitchClient = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;

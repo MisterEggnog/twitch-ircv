@@ -1,6 +1,6 @@
 mod args;
 mod badges;
-mod chat_logger;
+mod pretty_print;
 mod logging;
 mod setup;
 
