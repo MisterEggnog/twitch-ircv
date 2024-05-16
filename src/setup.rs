@@ -50,10 +50,7 @@ fn receiver_splitter(
     let (tx2, rx2) = mpsc::unbounded_channel();
     let handle = tokio::spawn(async move {
         while let Some(message) = incoming.recv().await {
-            if let Err(_) = tx1.send(message.clone()) {
-                return;
-            }
-            if let Err(_) = tx2.send(message) {
+            if tx1.send(message.clone()).is_err() || tx2.send(message).is_err() {
                 return;
             }
         }
