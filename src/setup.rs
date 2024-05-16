@@ -38,13 +38,12 @@ pub async fn init(args: Args) {
     }
 }
 
-fn receiver_splitter(
-    mut incoming: UnboundedReceiver<ServerMessage>,
-) -> (
-    JoinHandle<()>,
-    UnboundedReceiver<ServerMessage>,
-    UnboundedReceiver<ServerMessage>,
-) {
+fn receiver_splitter<T>(
+    mut incoming: UnboundedReceiver<T>,
+) -> (JoinHandle<()>, UnboundedReceiver<T>, UnboundedReceiver<T>)
+where
+    T: Clone + std::marker::Send + 'static,
+{
     use tokio::sync::mpsc;
     let (tx1, rx1) = mpsc::unbounded_channel();
     let (tx2, rx2) = mpsc::unbounded_channel();
@@ -84,28 +83,14 @@ pub fn setup_fancy_output(mut incoming: UnboundedReceiver<ServerMessage>) -> Joi
 #[tokio::test]
 async fn receiver_splitter_is_balanced() {
     use tokio::sync::mpsc;
-    use twitch_irc::message::PrivmsgMessage;
     let (tx, rx) = mpsc::unbounded_channel();
     let (handle, mut out1, mut out2) = receiver_splitter(rx);
-    let test_msg = ServerMessage::Privmsg(PrivmsgMessage::default());
+    let test_msg = "Hewwo, I am a string";
 
-    tx.send(test_msg.clone()).unwrap();
+    tx.send(test_msg).unwrap();
     let res1 = out1.recv().await.unwrap();
     let res2 = out2.recv().await.unwrap();
 
-    // == NOt ImPlEMENted FoR seRVERmesSage
-    let res1 = match res1 {
-        ServerMessage::Privmsg(msg) => msg,
-        _ => unreachable!(),
-    };
-    let res2 = match res2 {
-        ServerMessage::Privmsg(msg) => msg,
-        _ => unreachable!(),
-    };
-    let test_msg = match test_msg {
-        ServerMessage::Privmsg(msg) => msg,
-        _ => unreachable!(),
-    };
     assert_eq!(test_msg, res1);
     assert_eq!(test_msg, res2);
 
