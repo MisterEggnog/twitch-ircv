@@ -1,7 +1,7 @@
 mod args;
 mod badges;
-mod pretty_print;
 mod logging;
+mod pretty_print;
 mod setup;
 
 #[tokio::main]
