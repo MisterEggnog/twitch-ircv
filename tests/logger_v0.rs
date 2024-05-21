@@ -6,7 +6,7 @@ use std::io::Cursor;
 
 use twitch_irc::message::{IRCMessage, ServerMessage};
 
-use twitch_chat_logger::logging::log_v0;
+use twitch_ircv::logging::log_v0;
 
 fn valid_irc(s: &str) -> bool {
     s.contains("PRIVMSG")

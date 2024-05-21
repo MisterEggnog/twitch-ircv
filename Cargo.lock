@@ -774,17 +774,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "twitch-chat-logger"
-version = "0.1.0"
-dependencies = [
- "argh",
- "chrono",
- "colored",
- "tokio",
- "twitch-irc",
-]
-
-[[package]]
 name = "twitch-irc"
 version = "5.0.0"
 source = "git+https://github.com/MisterEggnog/twitch-irc-rs#2e412c7ffe0e5da20863a492940e63d3515f979b"
@@ -802,6 +791,17 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tracing",
+]
+
+[[package]]
+name = "twitch-ircv"
+version = "0.1.0"
+dependencies = [
+ "argh",
+ "chrono",
+ "colored",
+ "tokio",
+ "twitch-irc",
 ]
 
 [[package]]
