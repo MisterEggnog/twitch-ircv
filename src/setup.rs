@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{self, stdout, BufWriter};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::JoinHandle;
@@ -39,7 +39,12 @@ pub async fn init(args: Args) {
 }
 
 fn open_log_file(args: &Args) -> io::Result<File> {
-    File::create(args.log_file.clone().unwrap())
+    //let append = args.append.unwrap_or(false);
+    let log_file = args.log_file.clone().unwrap();
+    OpenOptions::new()
+        .create(true)
+        .append(args.append)
+        .open(log_file)
 }
 
 fn receiver_splitter<T>(
@@ -93,7 +98,7 @@ fn append_switch_works() -> std::io::Result<()> {
 
     let channel_name = String::new();
     let log_file = Some(path.as_ref().to_path_buf());
-    let append = Some(true);
+    let append = true;
     let test_args = Args {
         channel_name,
         log_file,
@@ -126,10 +131,12 @@ fn open_log_file_opens_write_by_default() -> io::Result<()> {
     let test_args = Args {
         channel_name: String::new(),
         log_file,
-        append: None,
+        append: false,
     };
     let mut outfs = open_log_file(&test_args)?;
     writeln!(outfs, "I am full of spaghetti.")?;
+    drop(outfs);
+
     let file_contents = read_to_string(path.as_ref())?;
     assert_eq!("I am full of spaghetti.\n", file_contents);
 
