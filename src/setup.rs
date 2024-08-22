@@ -15,10 +15,10 @@ pub type TwitchClient = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentia
 
 pub async fn init(args: Args) {
     let (incoming_messages, client) = build_irc_client();
-    client.join(args.channel_name).unwrap();
+    client.join(args.channel_name.clone()).unwrap();
 
-    if let Some(file_path) = args.log_file {
-        let file = File::create(file_path).unwrap();
+    if args.log_file.is_some() {
+        let file = open_log_file(&args).unwrap();
         let mut file = BufWriter::new(file);
 
         let (handle, rx1, mut rx2) = receiver_splitter(incoming_messages);
@@ -39,7 +39,7 @@ pub async fn init(args: Args) {
 }
 
 fn open_log_file(args: &Args) -> io::Result<File> {
-    todo!()
+    File::create(args.log_file.clone().unwrap())
 }
 
 fn receiver_splitter<T>(
