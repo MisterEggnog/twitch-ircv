@@ -43,6 +43,7 @@ fn open_log_file(args: &Args) -> io::Result<File> {
     let log_file = args.log_file.clone().unwrap();
     OpenOptions::new()
         .create(true)
+        .write(true)
         .append(args.append)
         .open(log_file)
 }
