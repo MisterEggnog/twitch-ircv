@@ -1,4 +1,5 @@
 use argh::FromArgs;
+use std::path::PathBuf;
 
 /// Pretty print the live chat of a twitch channel.
 /// Also offers support for logging (most) of the irc messages posted in chat.
@@ -13,5 +14,9 @@ pub struct Args {
 
     /// file to write irc log to.
     #[argh(option, short = 'o')]
-    pub log_file: Option<String>,
+    pub log_file: Option<PathBuf>,
+
+    /// append to file, not overwrite it.
+    #[argh(option, short = 'a')]
+    pub append: Option<bool>,
 }
