@@ -108,7 +108,7 @@ fn append_switch_works() -> std::io::Result<()> {
     drop(outfs);
 
     let file_contents = read_to_string(path.as_ref())?;
-    let expected = ("Bagginses\nI am full of spaghetti.\n");
+    let expected = "Bagginses\nI am full of spaghetti.\n";
     assert_eq!(file_contents, expected);
 
     Ok(())
