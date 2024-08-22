@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{stdout, BufWriter};
+use std::io::{self, stdout, BufWriter};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::JoinHandle;
 use twitch_irc::login::StaticLoginCredentials;
@@ -36,6 +36,10 @@ pub async fn init(args: Args) {
         let join_handle = setup_fancy_output(incoming_messages);
         join_handle.await.unwrap();
     }
+}
+
+fn open_log_file(args: &Args) -> io::Result<File> {
+    todo!()
 }
 
 fn receiver_splitter<T>(
@@ -78,6 +82,36 @@ pub fn setup_fancy_output(mut incoming: UnboundedReceiver<ServerMessage>) -> Joi
             }
         }
     })
+}
+
+#[test]
+fn append_switch_works() -> std::io::Result<()> {
+    use std::fs::read_to_string;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+    let mut path = NamedTempFile::new().expect("Could not get temp path");
+
+    let channel_name = String::new();
+    let log_file = Some(path.as_ref().to_path_buf());
+    let append = Some(true);
+    let test_args = Args {
+        channel_name,
+        log_file,
+        append,
+    };
+
+    writeln!(path, "Bagginses")?;
+
+    let mut outfs = open_log_file(&test_args)?;
+    writeln!(outfs, "I am full of spaghetti.")?;
+
+    drop(outfs);
+
+    let file_contents = read_to_string(path.as_ref())?;
+    let expected = ("Bagginses\nI am full of spaghetti.\n");
+    assert_eq!(file_contents, expected);
+
+    Ok(())
 }
 
 #[tokio::test]
