@@ -16,7 +16,7 @@ pub struct Args {
     #[argh(option, short = 'o')]
     pub log_file: Option<PathBuf>,
 
-    /// append to file, not overwrite it.
+    /// append to log file, not overwrite it.
     #[argh(switch, short = 'a')]
     pub append: bool,
 }
