@@ -114,6 +114,28 @@ fn append_switch_works() -> std::io::Result<()> {
     Ok(())
 }
 
+#[test]
+fn open_log_file_opens_write_by_default() -> io::Result<()> {
+    use std::fs::read_to_string;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+    let mut path = NamedTempFile::new().expect("Could not get temp path");
+    writeln!(path, "Bagginses")?;
+
+    let log_file = Some(path.as_ref().to_path_buf());
+    let test_args = Args {
+        channel_name: String::new(),
+        log_file,
+        append: None,
+    };
+    let mut outfs = open_log_file(&test_args)?;
+    writeln!(outfs, "I am full of spaghetti.")?;
+    let file_contents = read_to_string(path.as_ref())?;
+    assert_eq!("I am full of spaghetti.\n", file_contents);
+
+    Ok(())
+}
+
 #[tokio::test]
 async fn receiver_splitter_is_balanced() {
     use tokio::sync::mpsc;
