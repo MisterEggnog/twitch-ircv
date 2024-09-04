@@ -19,4 +19,10 @@ pub struct Args {
     /// append to log file, not overwrite it.
     #[argh(switch, short = 'a')]
     pub append: bool,
+
+    /// don't connect to a twitch irc channel, read raw irc from stdin.
+    /// Note that you are still required to include a channel_name, it will be
+    /// ignored.
+    #[argh(switch)]
+    pub from_stdin: bool,
 }
