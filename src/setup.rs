@@ -17,6 +17,10 @@ pub async fn init(args: Args) {
     let (incoming_messages, client) = build_irc_client();
     client.join(args.channel_name.clone()).unwrap();
 
+    init_with_input(args, incoming_messages).await;
+}
+
+async fn init_with_input(args: Args, incoming_messages: UnboundedReceiver<ServerMessage>) {
     if args.log_file.is_some() {
         let file = open_log_file(&args).unwrap();
         let mut file = BufWriter::new(file);
