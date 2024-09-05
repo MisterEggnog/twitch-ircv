@@ -1,5 +1,5 @@
 use std::fs::{File, OpenOptions};
-use std::io::{self, stdout, BufWriter};
+use std::io::{self};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::JoinHandle;
 use twitch_irc::login::StaticLoginCredentials;
@@ -23,7 +23,7 @@ pub async fn init(args: Args) {
 async fn init_with_input(args: Args, incoming_messages: UnboundedReceiver<ServerMessage>) {
     if args.log_file.is_some() {
         let file = open_log_file(&args).unwrap();
-        let mut file = BufWriter::new(file);
+        let mut file = io::BufWriter::new(file);
 
         let (handle, rx1, mut rx2) = receiver_splitter(incoming_messages);
         let fancy_task = setup_fancy_output(rx1);
@@ -80,7 +80,7 @@ pub fn build_irc_client() -> (UnboundedReceiver<ServerMessage>, TwitchClient) {
 pub fn setup_fancy_output(mut incoming: UnboundedReceiver<ServerMessage>) -> JoinHandle<()> {
     let startup_time = chrono::Utc::now();
     println!("Logging started at {}", startup_time);
-    let mut stdout = stdout();
+    let mut stdout = io::stdout();
 
     tokio::spawn(async move {
         while let Some(message) = incoming.recv().await {
