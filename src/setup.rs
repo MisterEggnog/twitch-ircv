@@ -101,13 +101,12 @@ fn append_switch_works() -> std::io::Result<()> {
     use tempfile::NamedTempFile;
     let mut path = NamedTempFile::new().expect("Could not get temp path");
 
-    let channel_name = String::new();
     let log_file = Some(path.as_ref().to_path_buf());
     let append = true;
     let test_args = Args {
-        channel_name,
         log_file,
         append,
+        ..Default::default()
     };
 
     writeln!(path, "Bagginses")?;
@@ -134,9 +133,9 @@ fn open_log_file_opens_write_by_default() -> io::Result<()> {
 
     let log_file = Some(path.as_ref().to_path_buf());
     let test_args = Args {
-        channel_name: String::new(),
         log_file,
         append: false,
+        ..Default::default()
     };
     let mut outfs = open_log_file(&test_args)?;
     writeln!(outfs, "I am full of spaghetti.")?;
