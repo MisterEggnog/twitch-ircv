@@ -1,5 +1,5 @@
 use std::fs::{File, OpenOptions};
-use std::io::{self};
+use std::io::{self, prelude::*};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::JoinHandle;
 use twitch_irc::login::StaticLoginCredentials;
@@ -17,16 +17,20 @@ pub async fn init(args: Args) {
     let (incoming_messages, client) = build_irc_client();
     client.join(args.channel_name.clone()).unwrap();
 
-    init_with_input(args, incoming_messages).await;
+    init_with_input(args, incoming_messages, &mut io::stdout()).await;
 }
 
-async fn init_with_input(args: Args, incoming_messages: UnboundedReceiver<ServerMessage>) {
+async fn init_with_input<W: Write>(
+    args: Args,
+    incoming_messages: UnboundedReceiver<ServerMessage>,
+    stdout: &mut W,
+) {
     if args.log_file.is_some() {
         let file = open_log_file(&args).unwrap();
         let mut file = io::BufWriter::new(file);
 
         let (handle, rx1, mut rx2) = receiver_splitter(incoming_messages);
-        let fancy_task = setup_fancy_output(rx1);
+        let fancy_task = setup_fancy_output(rx1, stdout);
         let log_task = tokio::spawn(async move {
             while let Some(message) = rx2.recv().await {
                 log_v0(message, &mut file).await;
@@ -37,7 +41,7 @@ async fn init_with_input(args: Args, incoming_messages: UnboundedReceiver<Server
         task2.unwrap();
         task3.unwrap();
     } else {
-        let join_handle = setup_fancy_output(incoming_messages);
+        let join_handle = setup_fancy_output(incoming_messages, stdout);
         join_handle.await.unwrap();
     }
 }
@@ -77,10 +81,10 @@ pub fn build_irc_client() -> (UnboundedReceiver<ServerMessage>, TwitchClient) {
     TwitchClient::new(config)
 }
 
-pub fn setup_fancy_output(mut incoming: UnboundedReceiver<ServerMessage>) -> JoinHandle<()> {
+pub fn setup_fancy_output<W: Write>(mut incoming: UnboundedReceiver<ServerMessage>, stdout: &mut W) -> JoinHandle<()> {
     let startup_time = chrono::Utc::now();
     println!("Logging started at {}", startup_time);
-    let mut stdout = io::stdout();
+    //let mut stdout = io::stdout();
 
     tokio::spawn(async move {
         while let Some(message) = incoming.recv().await {
