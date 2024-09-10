@@ -1,6 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio::task::JoinHandle;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::ServerMessage;
@@ -62,7 +62,6 @@ fn receiver_splitter<T>(
 where
     T: Clone + std::marker::Send + 'static,
 {
-    use tokio::sync::mpsc;
     let (tx1, rx1) = mpsc::unbounded_channel();
     let (tx2, rx2) = mpsc::unbounded_channel();
     let handle = tokio::spawn(async move {
@@ -156,8 +155,28 @@ fn open_log_file_opens_write_by_default() -> io::Result<()> {
 }
 
 #[tokio::test]
+async fn read_from_stdin() {
+    use std::sync::{Arc, Mutex};
+    let test_args = Args {
+        channel_name: String::from("&"),
+        from_stdin: true,
+        ..Default::default()
+    };
+    //let (msg_dest, msg_source) = mpsc::unbounded_channel();
+
+    struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
+    impl Write for WriteLockBuf {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.0.lock().unwrap().write(buf)
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            self.0.lock().unwrap().flush()
+        }
+    }
+}
+
+#[tokio::test]
 async fn receiver_splitter_is_balanced() {
-    use tokio::sync::mpsc;
     let (tx, rx) = mpsc::unbounded_channel();
     let (handle, mut out1, mut out2) = receiver_splitter(rx);
     let test_msg = "Hewwo, I am a string";
