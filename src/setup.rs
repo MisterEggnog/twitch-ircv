@@ -17,13 +17,13 @@ pub async fn init(args: Args) {
     let (incoming_messages, client) = build_irc_client();
     client.join(args.channel_name.clone()).unwrap();
 
-    init_with_input(args, incoming_messages, &mut io::stdout()).await;
+    init_with_input(args, incoming_messages, io::stdout()).await;
 }
 
-async fn init_with_input<W: Write>(
+async fn init_with_input<W: Write + Send + 'static>(
     args: Args,
     incoming_messages: UnboundedReceiver<ServerMessage>,
-    stdout: &mut W,
+    stdout: W,
 ) {
     if args.log_file.is_some() {
         let file = open_log_file(&args).unwrap();
@@ -81,12 +81,16 @@ pub fn build_irc_client() -> (UnboundedReceiver<ServerMessage>, TwitchClient) {
     TwitchClient::new(config)
 }
 
-pub fn setup_fancy_output<W: Write>(mut incoming: UnboundedReceiver<ServerMessage>, stdout: &mut W) -> JoinHandle<()> {
+pub fn setup_fancy_output<W: Write + Send + 'static>(
+    mut incoming: UnboundedReceiver<ServerMessage>,
+    stdout: W,
+) -> JoinHandle<()> {
     let startup_time = chrono::Utc::now();
     println!("Logging started at {}", startup_time);
     //let mut stdout = io::stdout();
 
     tokio::spawn(async move {
+        let mut stdout = stdout;
         while let Some(message) = incoming.recv().await {
             if !message_handler(message, startup_time, &mut stdout)
                 .await
