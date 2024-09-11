@@ -17,14 +17,18 @@ pub async fn init(args: Args) {
     let (incoming_messages, client) = build_irc_client();
     client.join(args.channel_name.clone()).unwrap();
 
-    init_with_input(args, incoming_messages, io::stdout()).await;
+    init_with_input(args, incoming_messages, io::stdin(), io::stdout()).await;
 }
 
-async fn init_with_input<W: Write + Send + 'static>(
+async fn init_with_input<W, R>(
     args: Args,
     incoming_messages: UnboundedReceiver<ServerMessage>,
+    stdin: R,
     stdout: W,
-) {
+) where
+    W: Write + Send + 'static,
+    R: Read + Send + 'static,
+{
     if args.log_file.is_some() {
         let file = open_log_file(&args).unwrap();
         let mut file = io::BufWriter::new(file);
