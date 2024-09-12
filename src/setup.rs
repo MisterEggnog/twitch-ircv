@@ -161,11 +161,18 @@ fn open_log_file_opens_write_by_default() -> io::Result<()> {
 #[tokio::test]
 async fn read_from_stdin() {
     use std::sync::{Arc, Mutex};
+    use twitch_irc::message::{IRCMessage, ServerMessage};
     let test_args = Args {
         channel_name: String::from("&"),
         from_stdin: true,
         ..Default::default()
     };
+
+    // This was created with a lot of trial & error, mainly the tags
+    let prepped_example = "@room-id=911;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
+    let msg = IRCMessage::parse(prepped_example).unwrap();
+    let msg = ServerMessage::try_from(msg).unwrap();
+
     //let (msg_dest, msg_source) = mpsc::unbounded_channel();
 
     struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
