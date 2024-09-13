@@ -173,8 +173,14 @@ async fn read_from_stdin() {
     let msg = IRCMessage::parse(prepped_example).unwrap();
     let msg = ServerMessage::try_from(msg).unwrap();
 
+    let pong_example = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
+    let pong_msg = IRCMessage::parse(pong_example).unwrap();
+    let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
+
     let mut test_input = vec![];
+    writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
     writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
+    writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
 
     //let (msg_dest, msg_source) = mpsc::unbounded_channel();
 
