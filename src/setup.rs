@@ -179,12 +179,12 @@ async fn read_from_stdin() {
     let pong_msg = IRCMessage::parse(pong_example).unwrap();
     let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
 
+    let expected_substr = "7: bread bread bread";
+
     let mut test_input = vec![];
     writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
     writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
     writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
-
-    //let (msg_dest, msg_source) = mpsc::unbounded_channel();
 
     struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
     impl Write for WriteLockBuf {
@@ -195,6 +195,20 @@ async fn read_from_stdin() {
             self.0.lock().unwrap().flush()
         }
     }
+    let output = Arc::new(Mutex::new(vec![]));
+
+    let send_output = WriteLockBuf(Arc::clone(&output));
+    let test_input = io::Cursor::new(test_input);
+    init(test_args, test_input, send_output).await;
+
+    let output = { String::from(std::str::from_utf8(&output.lock().unwrap()).unwrap()) };
+
+    assert!(
+        output.contains(expected_substr),
+        "`{}` does not contain `{}`",
+        output,
+        expected_substr
+    );
 }
 
 #[tokio::test]
