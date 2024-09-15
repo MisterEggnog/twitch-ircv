@@ -62,6 +62,17 @@ fn open_log_file(args: &Args) -> io::Result<File> {
         .open(log_file)
 }
 
+#[allow(unreachable_code)]
+fn filein_to_smsg_task<R>(_input: R) -> impl Iterator<Item = io::Result<ServerMessage>> {
+    todo!();
+    // This is to get the dummy function to compile
+    // Waa waa, this line is never reached!
+    // This function is intentionally broken.
+    // Quit being so whiny aobut useless shit, all the complaints about unused
+    // variables are just making it harder to find the meaningful errors.
+    std::iter::empty()
+}
+
 fn receiver_splitter<T>(
     mut incoming: UnboundedReceiver<T>,
 ) -> (JoinHandle<()>, UnboundedReceiver<T>, UnboundedReceiver<T>)
@@ -209,6 +220,45 @@ async fn read_from_stdin() {
         output,
         expected_substr
     );
+}
+
+#[test]
+fn test_text_to_server_message() {
+    use twitch_irc::message::IRCMessage;
+    // Copied from read stdin
+    let prepped_example = "@room-id=911;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
+    let msg = IRCMessage::parse(prepped_example).unwrap();
+    let msg = ServerMessage::try_from(msg).unwrap();
+
+    // Also copied from read stdin
+    let pong_example = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
+    let pong_msg = IRCMessage::parse(pong_example).unwrap();
+    let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
+
+    let mut test_input = vec![];
+    writeln!(test_input, "{}", prepped_example).unwrap();
+    writeln!(test_input, "{}", prepped_example).unwrap();
+    writeln!(test_input, "{}", pong_example).unwrap();
+    writeln!(test_input, "{}", pong_example).unwrap();
+    writeln!(test_input, "{}", prepped_example).unwrap();
+    writeln!(test_input, "{}", prepped_example).unwrap();
+
+    // I understand why ServerMessage doesn't impl PartialEq but it makes
+    // testing difficult.
+    let expected: Vec<_> = [
+        msg.clone(),
+        msg.clone(),
+        pong_msg.clone(),
+        pong_msg,
+        msg.clone(),
+        msg,
+    ]
+    .map(|m| format!("{:?}", m))
+    .into();
+    let result: Vec<_> = filein_to_smsg_task(&test_input)
+        .map(|s| format!("{:?}", s.unwrap()))
+        .collect();
+    assert_eq!(expected, result);
 }
 
 #[tokio::test]
