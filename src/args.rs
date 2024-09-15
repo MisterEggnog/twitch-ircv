@@ -7,6 +7,7 @@ use std::path::PathBuf;
 /// Note:
 /// * Color can be prohibited with the enviromental variable NO_COLOR.
 /// * Color can be forced using the enviromental variable CLICOLOR_FORCE.
+#[allow(dead_code)]
 #[derive(FromArgs, Default)]
 pub struct Args {
     #[argh(positional)]

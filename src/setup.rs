@@ -13,7 +13,7 @@ use crate::pretty_print::message_handler;
 
 pub type TwitchClient = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
 
-pub async fn init<W, R>(args: Args, stdin: R, stdout: W)
+pub async fn init<W, R>(args: Args, _stdin: R, stdout: W)
 where
     W: Write + Send + 'static,
     R: Read + Send + 'static,
