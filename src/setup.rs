@@ -62,15 +62,14 @@ fn open_log_file(args: &Args) -> io::Result<File> {
         .open(log_file)
 }
 
-#[allow(unreachable_code)]
-fn filein_to_smsg_task<R>(_input: R) -> impl Iterator<Item = io::Result<ServerMessage>> {
-    todo!();
-    // This is to get the dummy function to compile
-    // Waa waa, this line is never reached!
-    // This function is intentionally broken.
-    // Quit being so whiny aobut useless shit, all the complaints about unused
-    // variables are just making it harder to find the meaningful errors.
-    std::iter::empty()
+fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = io::Result<ServerMessage>> {
+    use twitch_irc::message::IRCMessage;
+    input.lines().map(|l| {
+        l.map(|raw| {
+            let msg = IRCMessage::parse(raw.as_ref()).unwrap();
+            ServerMessage::try_from(msg).unwrap()
+        })
+    })
 }
 
 fn receiver_splitter<T>(
@@ -237,28 +236,18 @@ fn test_text_to_server_message() {
 
     let mut test_input = vec![];
     writeln!(test_input, "{}", prepped_example).unwrap();
-    writeln!(test_input, "{}", prepped_example).unwrap();
-    writeln!(test_input, "{}", pong_example).unwrap();
     writeln!(test_input, "{}", pong_example).unwrap();
     writeln!(test_input, "{}", prepped_example).unwrap();
-    writeln!(test_input, "{}", prepped_example).unwrap();
+    let test_input = io::Cursor::new(test_input);
 
     // I understand why ServerMessage doesn't impl PartialEq but it makes
     // testing difficult.
-    let expected: Vec<_> = [
-        msg.clone(),
-        msg.clone(),
-        pong_msg.clone(),
-        pong_msg,
-        msg.clone(),
-        msg,
-    ]
-    .map(|m| format!("{:?}", m))
-    .into();
-    let result: Vec<_> = filein_to_smsg_task(&test_input)
-        .map(|s| format!("{:?}", s.unwrap()))
-        .collect();
-    assert_eq!(expected, result);
+    let expected: Vec<_> = [msg.clone(), pong_msg, msg].into();
+    let result: Vec<_> = filein_to_smsg(test_input).map(|s| s.unwrap()).collect();
+    assert_eq!(expected.len(), result.len());
+    for (res, exp) in expected.into_iter().zip(result) {
+        assert_eq!(res.source(), exp.source());
+    }
 }
 
 #[tokio::test]
