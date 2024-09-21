@@ -72,6 +72,12 @@ fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = io::Result<Serve
     })
 }
 
+fn filein_channel_task_create<R: Read + Send + 'static>(
+    input: R,
+) -> (JoinHandle<()>, UnboundedReceiver<ServerMessage>) {
+    todo!()
+}
+
 fn receiver_splitter<T>(
     mut incoming: UnboundedReceiver<T>,
 ) -> (JoinHandle<()>, UnboundedReceiver<T>, UnboundedReceiver<T>)
@@ -248,6 +254,30 @@ fn test_text_to_server_message() {
     for (res, exp) in expected.into_iter().zip(result) {
         assert_eq!(res.source(), exp.source());
     }
+}
+
+#[tokio::test]
+async fn create_stdin_task() {
+    use twitch_irc::message::IRCMessage;
+    // filein_channel_task_create(input) -> (JoinHandle<()>, UnboundedReceiver<ServerMessage>)
+    // Copied from read stdin
+    let prepped_example = "@room-id=911;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
+    let irc_msg = IRCMessage::parse(prepped_example).unwrap();
+
+    let mut input = vec![];
+    writeln!(input, "{}", prepped_example).unwrap();
+    writeln!(input, "{}", prepped_example).unwrap();
+    let input = io::Cursor::new(input);
+
+    let (handle, mut incoming) = filein_channel_task_create(input);
+    let first = incoming.recv().await.unwrap();
+    assert_eq!(first.source(), &irc_msg);
+
+    let second = incoming.recv().await.unwrap();
+    assert_eq!(second.source(), &irc_msg);
+    assert!(incoming.recv().await.is_none());
+
+    handle.await.unwrap();
 }
 
 #[tokio::test]
