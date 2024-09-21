@@ -75,7 +75,14 @@ fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = io::Result<Serve
 fn filein_channel_task_create<R: Read + Send + 'static>(
     input: R,
 ) -> (JoinHandle<()>, UnboundedReceiver<ServerMessage>) {
-    todo!()
+    let (tx, rx) = mpsc::unbounded_channel();
+    let stdin_read_task = tokio::spawn(async move {
+        let input = io::BufReader::new(input);
+        for msg in filein_to_smsg(input) {
+            tx.send(msg.unwrap()).unwrap();
+        }
+    });
+    (stdin_read_task, rx)
 }
 
 fn receiver_splitter<T>(
