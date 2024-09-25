@@ -58,7 +58,6 @@ async fn init_with_input<W>(
 }
 
 fn open_log_file(args: &Args) -> io::Result<File> {
-    //let append = args.append.unwrap_or(false);
     let log_file = args.log_file.clone().unwrap();
     OpenOptions::new()
         .create(true)
@@ -120,7 +119,6 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
 ) -> JoinHandle<()> {
     let startup_time = chrono::Utc::now();
     println!("Logging started at {}", startup_time);
-    //let mut stdout = io::stdout();
 
     tokio::spawn(async move {
         let mut stdout = stdout;
@@ -271,7 +269,6 @@ fn test_text_to_server_message() {
 #[tokio::test]
 async fn create_stdin_task() {
     use twitch_irc::message::IRCMessage;
-    // filein_channel_task_create(input) -> (JoinHandle<()>, UnboundedReceiver<ServerMessage>)
     // Copied from read stdin
     let prepped_example = "@room-id=911;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
     let irc_msg = IRCMessage::parse(prepped_example).unwrap();
