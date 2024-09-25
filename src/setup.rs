@@ -137,6 +137,9 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
 #[allow(dead_code)]
 pub const PRIVMSG_EXAMPLE: &str = "@room-id=910;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
 
+#[allow(dead_code)]
+pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
+
 #[test]
 fn append_switch_works() -> std::io::Result<()> {
     use std::fs::read_to_string;
@@ -203,8 +206,7 @@ async fn read_from_stdin() {
     let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
     let msg = ServerMessage::try_from(msg).unwrap();
 
-    let pong_example = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
-    let pong_msg = IRCMessage::parse(pong_example).unwrap();
+    let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
     let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
 
     let expected_substr = "7: bread bread bread";
@@ -245,14 +247,12 @@ fn test_text_to_server_message() {
     let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
     let msg = ServerMessage::try_from(msg).unwrap();
 
-    // Also copied from read stdin
-    let pong_example = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
-    let pong_msg = IRCMessage::parse(pong_example).unwrap();
+    let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
     let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
 
     let mut test_input = vec![];
     writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
-    writeln!(test_input, "{}", pong_example).unwrap();
+    writeln!(test_input, "{}", PONG_MSG_EXAMPLE).unwrap();
     writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
     let test_input = io::Cursor::new(test_input);
 
