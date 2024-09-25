@@ -133,6 +133,10 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
     })
 }
 
+/// This was created with a lot of trial & error, mainly the tags
+#[allow(dead_code)]
+pub const PRIVMSG_EXAMPLE: &str = "@room-id=910;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
+
 #[test]
 fn append_switch_works() -> std::io::Result<()> {
     use std::fs::read_to_string;
@@ -196,9 +200,7 @@ async fn read_from_stdin() {
         ..Default::default()
     };
 
-    // This was created with a lot of trial & error, mainly the tags
-    let prepped_example = "@room-id=911;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
-    let msg = IRCMessage::parse(prepped_example).unwrap();
+    let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
     let msg = ServerMessage::try_from(msg).unwrap();
 
     let pong_example = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
@@ -240,9 +242,7 @@ async fn read_from_stdin() {
 #[test]
 fn test_text_to_server_message() {
     use twitch_irc::message::IRCMessage;
-    // Copied from read stdin
-    let prepped_example = "@room-id=911;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
-    let msg = IRCMessage::parse(prepped_example).unwrap();
+    let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
     let msg = ServerMessage::try_from(msg).unwrap();
 
     // Also copied from read stdin
@@ -251,9 +251,9 @@ fn test_text_to_server_message() {
     let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
 
     let mut test_input = vec![];
-    writeln!(test_input, "{}", prepped_example).unwrap();
+    writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
     writeln!(test_input, "{}", pong_example).unwrap();
-    writeln!(test_input, "{}", prepped_example).unwrap();
+    writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
     let test_input = io::Cursor::new(test_input);
 
     // I understand why ServerMessage doesn't impl PartialEq but it makes
@@ -269,13 +269,11 @@ fn test_text_to_server_message() {
 #[tokio::test]
 async fn create_stdin_task() {
     use twitch_irc::message::IRCMessage;
-    // Copied from read stdin
-    let prepped_example = "@room-id=911;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
-    let irc_msg = IRCMessage::parse(prepped_example).unwrap();
+    let irc_msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
 
     let mut input = vec![];
-    writeln!(input, "{}", prepped_example).unwrap();
-    writeln!(input, "{}", prepped_example).unwrap();
+    writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
+    writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
     let input = io::Cursor::new(input);
 
     let (handle, mut incoming) = filein_channel_task_create(input);
