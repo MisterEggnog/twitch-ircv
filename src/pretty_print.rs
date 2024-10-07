@@ -70,11 +70,12 @@ async fn print_chat_msg_test() {
     let message_str = "Bannana bread";
     let message_text = String::from(message_str);
 
+    let example = crate::setup::make_privmsg_example();
     let message = PrivmsgMessage {
         sender,
         server_timestamp: message_time,
         message_text,
-        ..Default::default()
+        ..example
     };
 
     let mut output = vec![];
