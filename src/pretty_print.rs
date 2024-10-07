@@ -93,6 +93,7 @@ async fn print_chat_msg_test() {
 #[tokio::test]
 async fn does_not_panic_with_broken_pipe() -> io::Result<()> {
     use std::io;
+    use twitch_irc::message::IRCMessage;
     struct PanicsBrokenPipe;
     impl Write for PanicsBrokenPipe {
         fn write(&mut self, _: &[u8]) -> io::Result<usize> {
@@ -104,7 +105,8 @@ async fn does_not_panic_with_broken_pipe() -> io::Result<()> {
         }
     }
 
-    let message = ServerMessage::Privmsg(PrivmsgMessage::default());
+    let message = IRCMessage::parse(crate::setup::PRIVMSG_EXAMPLE).unwrap();
+    let message = ServerMessage::try_from(message).expect("Preset irc message");
     let start_time = Utc::now();
     let mut output = PanicsBrokenPipe;
     let res = message_handler(message, start_time, &mut output).await?;
