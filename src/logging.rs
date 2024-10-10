@@ -24,10 +24,8 @@ async fn log_v0_privmsg() {
     let source = irc!["PRIVMSG", "#Orflex", "This is a real irc message, totes"];
     let expected = format!("{}\n", source.as_raw_irc());
 
-    let fake_privmsg = PrivmsgMessage {
-        source,
-        ..Default::default()
-    };
+    let example = crate::setup::make_privmsg_example();
+    let fake_privmsg = PrivmsgMessage { source, ..example };
     let fake_privmsg = ServerMessage::Privmsg(fake_privmsg);
 
     let mut output = vec![];
