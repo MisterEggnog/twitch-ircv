@@ -776,8 +776,9 @@ dependencies = [
 
 [[package]]
 name = "twitch-irc"
-version = "5.0.0"
-source = "git+https://github.com/MisterEggnog/twitch-irc-rs#2e412c7ffe0e5da20863a492940e63d3515f979b"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba8e5095c3a4d4d72decb36b2ceb1e40085e7d8d93282b1d2f3cf2bba0dee4db"
 dependencies = [
  "async-trait",
  "bytes",
