@@ -65,7 +65,8 @@ async fn print_chat_msg_test() {
     let sender_name = "snapdragon".to_string();
     let sender = TwitchUserBasics {
         name: sender_name.clone(),
-        ..Default::default()
+        login: String::new(),
+        id: String::new(),
     };
     let message_str = "Bannana bread";
     let message_text = String::from(message_str);
