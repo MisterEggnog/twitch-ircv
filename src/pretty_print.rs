@@ -65,16 +65,18 @@ async fn print_chat_msg_test() {
     let sender_name = "snapdragon".to_string();
     let sender = TwitchUserBasics {
         name: sender_name.clone(),
-        ..Default::default()
+        login: String::new(),
+        id: String::new(),
     };
     let message_str = "Bannana bread";
     let message_text = String::from(message_str);
 
+    let example = crate::setup::make_privmsg_example();
     let message = PrivmsgMessage {
         sender,
         server_timestamp: message_time,
         message_text,
-        ..Default::default()
+        ..example
     };
 
     let mut output = vec![];
@@ -104,7 +106,7 @@ async fn does_not_panic_with_broken_pipe() -> io::Result<()> {
         }
     }
 
-    let message = ServerMessage::Privmsg(PrivmsgMessage::default());
+    let message = ServerMessage::Privmsg(crate::setup::make_privmsg_example());
     let start_time = Utc::now();
     let mut output = PanicsBrokenPipe;
     let res = message_handler(message, start_time, &mut output).await?;
