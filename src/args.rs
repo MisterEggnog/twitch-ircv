@@ -25,4 +25,8 @@ pub struct Args {
     /// ignored.
     #[argh(switch)]
     pub from_stdin: bool,
+
+    /// output the raw irc
+    #[argh(switch)]
+    pub print_raw_irc: bool,
 }
