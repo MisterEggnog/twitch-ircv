@@ -13,19 +13,20 @@ use crate::pretty_print::message_handler;
 
 pub type TwitchClient = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
 
-pub async fn init<W, R>(args: Args, stdin: R, stdout: W)
+pub async fn init<W, R>(args: Args, stdin: R, stdout: W) -> io::Result<()>
 where
     W: Write + Send + 'static,
     R: Read + Send + 'static,
 {
     if args.from_stdin {
         let (handle, recv) = filein_channel_task_create(stdin);
-        let (handle_res, _) = tokio::join!(handle, init_with_input(args, recv, stdout));
+        let (handle_res, stdout_result) = tokio::join!(handle, init_with_input(args, recv, stdout));
         handle_res.unwrap();
+        stdout_result
     } else {
         let (incoming_messages, client) = build_irc_client();
         client.join(args.channel_name.clone()).unwrap();
-        init_with_input(args, incoming_messages, stdout).await;
+        init_with_input(args, incoming_messages, stdout).await
     }
 }
 
