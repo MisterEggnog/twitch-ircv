@@ -11,22 +11,10 @@ pub async fn message_handler<W: Write>(
     message: ServerMessage,
     start_time: DateTime<Utc>,
     out: &mut W,
-) -> io::Result<bool> {
-    let msg = match message {
+) -> io::Result<()> {
+    match message {
         ServerMessage::Privmsg(msg) => print_chat_msg(msg, start_time, out).await,
         _ => Ok(()),
-    };
-    if let Err(err) = msg {
-        if err.kind() != io::ErrorKind::BrokenPipe {
-            eprintln!("Write failed with {}", err);
-            Err(err)
-        } else {
-            // Exit because pipe closed
-            Ok(false)
-        }
-    } else {
-        // Keep going
-        Ok(true)
     }
 }
 
@@ -90,26 +78,4 @@ async fn print_chat_msg_test() {
         "\n{}",
         String::from_utf8_lossy(&output)
     );
-}
-
-#[tokio::test]
-async fn does_not_panic_with_broken_pipe() -> io::Result<()> {
-    use std::io;
-    struct PanicsBrokenPipe;
-    impl Write for PanicsBrokenPipe {
-        fn write(&mut self, _: &[u8]) -> io::Result<usize> {
-            Err(From::from(io::ErrorKind::BrokenPipe))
-        }
-
-        fn flush(&mut self) -> io::Result<()> {
-            Ok(())
-        }
-    }
-
-    let message = ServerMessage::Privmsg(crate::setup::make_privmsg_example());
-    let start_time = Utc::now();
-    let mut output = PanicsBrokenPipe;
-    let res = message_handler(message, start_time, &mut output).await?;
-    assert!(!res);
-    Ok(())
 }
