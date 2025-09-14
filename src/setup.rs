@@ -33,7 +33,8 @@ async fn init_with_input<W>(
     args: Args,
     incoming_messages: UnboundedReceiver<ServerMessage>,
     stdout: W,
-) where
+) -> io::Result<()>
+where
     W: Write + Send + 'static,
 {
     if args.log_file.is_some() {
@@ -41,19 +42,19 @@ async fn init_with_input<W>(
         let mut file = io::BufWriter::new(file);
 
         let (handle, rx1, mut rx2) = receiver_splitter(incoming_messages);
-        let fancy_task = setup_fancy_output(rx1, stdout);
+        let stdout_task = setup_fancy_output(rx1, stdout);
         let log_task = tokio::spawn(async move {
             while let Some(message) = rx2.recv().await {
                 log_v0(message, &mut file).await;
             }
         });
-        let (task1, task2, task3) = tokio::join!(handle, fancy_task, log_task);
+        let (task1, task2, task3) = tokio::join!(handle, log_task, stdout_task);
         task1.unwrap();
         task2.unwrap();
-        task3.unwrap();
+        task3.unwrap()
     } else {
         let join_handle = setup_fancy_output(incoming_messages, stdout);
-        join_handle.await.unwrap();
+        join_handle.await.unwrap()
     }
 }
 
