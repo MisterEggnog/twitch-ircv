@@ -4,19 +4,10 @@ mod logging;
 mod pretty_print;
 mod setup;
 
-use std::io;
+use std::io::{stdin, stdout};
 
 #[tokio::main]
-async fn main() -> io::Result<()> {
+async fn main() {
     let args: args::Args = argh::from_env();
-    let res = setup::init(args, io::stdin(), io::stdout()).await;
-    if let Err(e) = res {
-        if e.kind() == io::ErrorKind::BrokenPipe {
-            Ok(())
-        } else {
-            Err(e)
-        }
-    } else {
-        Ok(())
-    }
+    setup::init(args, stdin(), stdout()).await;
 }
