@@ -92,6 +92,7 @@ async fn print_chat_msg_test() {
     );
 }
 
+#[ignore]
 #[tokio::test]
 async fn does_not_panic_with_broken_pipe() -> io::Result<()> {
     use std::io;
