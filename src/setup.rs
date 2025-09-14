@@ -126,7 +126,7 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
         while let Some(message) = incoming.recv().await {
             message_handler(message, startup_time, &mut stdout).await?;
         }
-        unreachable!()
+        Ok(())
     })
 }
 
