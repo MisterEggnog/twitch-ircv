@@ -116,20 +116,16 @@ pub fn build_irc_client() -> (UnboundedReceiver<ServerMessage>, TwitchClient) {
 pub fn setup_fancy_output<W: Write + Send + 'static>(
     mut incoming: UnboundedReceiver<ServerMessage>,
     stdout: W,
-) -> JoinHandle<()> {
+) -> JoinHandle<io::Result<()>> {
     let startup_time = chrono::Utc::now();
     println!("Logging started at {}", startup_time);
 
     tokio::spawn(async move {
         let mut stdout = stdout;
         while let Some(message) = incoming.recv().await {
-            if !message_handler(message, startup_time, &mut stdout)
-                .await
-                .expect("Failed to write message")
-            {
-                break;
-            }
+            message_handler(message, startup_time, &mut stdout).await?;
         }
+        unreachable!()
     })
 }
 
