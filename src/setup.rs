@@ -18,6 +18,23 @@ where
     W: Write + Send + 'static,
     R: Read + Send + 'static,
 {
+    let res = init_no_error_handling(args, stdin, stdout).await;
+    if let Err(e) = res {
+        if e.kind() == io::ErrorKind::BrokenPipe {
+            Ok(())
+        } else {
+            Err(e)
+        }
+    } else {
+        Ok(())
+    }
+}
+
+pub async fn init_no_error_handling<W, R>(args: Args, stdin: R, stdout: W) -> io::Result<()>
+where
+    W: Write + Send + 'static,
+    R: Read + Send + 'static,
+{
     if args.from_stdin {
         let (handle, recv) = filein_channel_task_create(stdin);
         let (handle_res, stdout_result) = tokio::join!(handle, init_with_input(args, recv, stdout));
