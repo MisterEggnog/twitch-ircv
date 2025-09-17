@@ -1,25 +1,21 @@
-use std::fs::read_to_string;
+use std::fs::{read_to_string, File};
 use std::io;
+use std::process::Command;
 
-use twitch_ircv::args::Args;
-use twitch_ircv::setup::init;
+#[test]
+fn raw_irc_mimics_input() -> io::Result<()> {
+    let input_file = "tests/irc_data_no_ping";
+    let irc_data = read_to_string(&input_file)?;
 
-#[tokio::test]
-async fn raw_irc_mimics_input() -> io::Result<()> {
-    let irc_data = read_to_string("tests/irc_data_no_ping")?;
-    let args = Args {
-        from_stdin: true,
-        print_raw_irc: true,
-        ..Default::default()
-    };
-    let mut output: &'static Vec<u8> = vec![];
-
-    init(args, irc_data.clone().as_bytes(), *output)
-        .await
-        .expect("Bubbling up errors should count as handling them!");
-
-    let output = String::from_utf8(*output).expect("vec written to should be utf8");
-    assert_eq!(irc_data, output);
+    let input = File::open(&input_file)?;
+    let result = Command::new(env!("CARGO_BIN_EXE_twitch-ircv"))
+        .args(["notachannel", "--from-stdin", "--print-raw-irc"])
+        .stdin(input)
+        .output()?;
+    let data = String::from_utf8(result.stdout).expect("terminal output should be utf8");
+    let err_str = String::from_utf8(result.stderr).unwrap();
+    assert_eq!(result.status.code(), Some(0), "{}", err_str);
+    assert_eq!(irc_data, data);
 
     Ok(())
 }
