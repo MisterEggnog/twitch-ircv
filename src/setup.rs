@@ -133,6 +133,14 @@ pub fn build_irc_client() -> (UnboundedReceiver<ServerMessage>, TwitchClient) {
     TwitchClient::new(config)
 }
 
+pub fn setup_output<W: Write + Send + 'static>(
+    mut incoming: UnboundedReceiver<ServerMessage>,
+    args: &Args,
+    stdout: W,
+) -> JoinHandle<io::Result<()>> {
+    todo!()
+}
+
 pub fn setup_fancy_output<W: Write + Send + 'static>(
     mut incoming: UnboundedReceiver<ServerMessage>,
     stdout: W,
@@ -167,6 +175,27 @@ pub fn make_privmsg_example() -> twitch_irc::message::PrivmsgMessage {
 
 #[allow(dead_code)]
 pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
+
+#[tokio::test]
+async fn write_raw_irc() {
+    use tokio::sync::mpsc::unbounded_channel;
+    use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
+
+    let example = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+    let example = ServerMessage::try_from(example).unwrap();
+    let args = Args {
+        print_raw_irc: true,
+        ..Default::default()
+    };
+    let mut fake_output = vec![];
+
+    let (input, output) = unbounded_channel();
+    input.send(example).unwrap();
+    setup_output(output, &args, &mut fake_output).await.unwrap();
+
+    //let fake_output = String::from_utf8(fake_output.clone()).expect("Should be writing utf8");
+    assert_eq!(PRIVMSG_EXAMPLE.as_bytes(), fake_output);
+}
 
 #[test]
 fn append_switch_works() -> std::io::Result<()> {
