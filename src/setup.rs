@@ -179,6 +179,17 @@ pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::sync::{Arc, Mutex};
+
+    struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
+    impl Write for WriteLockBuf {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.0.lock().unwrap().write(buf)
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            self.0.lock().unwrap().flush()
+        }
+    }
 
     /*#[tokio::test]
     async fn write_raw_irc() {
@@ -256,7 +267,6 @@ mod test {
 
     #[tokio::test]
     async fn read_from_stdin() {
-        use std::sync::{Arc, Mutex};
         use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
         let test_args = Args {
             channel_name: String::from("&"),
@@ -277,15 +287,6 @@ mod test {
         writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
         writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
 
-        struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
-        impl Write for WriteLockBuf {
-            fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-                self.0.lock().unwrap().write(buf)
-            }
-            fn flush(&mut self) -> io::Result<()> {
-                self.0.lock().unwrap().flush()
-            }
-        }
         let output = Arc::new(Mutex::new(vec![]));
 
         let send_output = WriteLockBuf(Arc::clone(&output));
