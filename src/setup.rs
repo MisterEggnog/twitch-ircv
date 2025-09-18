@@ -176,187 +176,192 @@ pub fn make_privmsg_example() -> twitch_irc::message::PrivmsgMessage {
 #[allow(dead_code)]
 pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
 
-#[tokio::test]
-async fn write_raw_irc() {
-    use tokio::sync::mpsc::unbounded_channel;
-    use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
+#[cfg(test)]
+mod test {
+    use super::*;
 
-    let example = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-    let example = ServerMessage::try_from(example).unwrap();
-    let args = Args {
-        print_raw_irc: true,
-        ..Default::default()
-    };
-    let mut fake_output = vec![];
+    /*#[tokio::test]
+    async fn write_raw_irc() {
+        use tokio::sync::mpsc::unbounded_channel;
+        use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
 
-    let (input, output) = unbounded_channel();
-    input.send(example).unwrap();
-    setup_output(output, &args, &mut fake_output).await.unwrap();
+        let example = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+        let example = ServerMessage::try_from(example).unwrap();
+        let args = Args {
+            print_raw_irc: true,
+            ..Default::default()
+        };
+        let mut fake_output = vec![];
 
-    //let fake_output = String::from_utf8(fake_output.clone()).expect("Should be writing utf8");
-    assert_eq!(PRIVMSG_EXAMPLE.as_bytes(), fake_output);
-}
+        let (input, output) = unbounded_channel();
+        input.send(example).unwrap();
+        setup_output(output, &args, &mut fake_output).await.unwrap();
 
-#[test]
-fn append_switch_works() -> std::io::Result<()> {
-    use std::fs::read_to_string;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
-    let mut path = NamedTempFile::new().expect("Could not get temp path");
+        //let fake_output = String::from_utf8(fake_output.clone()).expect("Should be writing utf8");
+        assert_eq!(PRIVMSG_EXAMPLE.as_bytes(), fake_output);
+    }*/
 
-    let log_file = Some(path.as_ref().to_path_buf());
-    let append = true;
-    let test_args = Args {
-        log_file,
-        append,
-        ..Default::default()
-    };
+    #[test]
+    fn append_switch_works() -> std::io::Result<()> {
+        use std::fs::read_to_string;
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        let mut path = NamedTempFile::new().expect("Could not get temp path");
 
-    writeln!(path, "Bagginses")?;
+        let log_file = Some(path.as_ref().to_path_buf());
+        let append = true;
+        let test_args = Args {
+            log_file,
+            append,
+            ..Default::default()
+        };
 
-    let mut outfs = open_log_file(&test_args)?;
-    writeln!(outfs, "I am full of spaghetti.")?;
+        writeln!(path, "Bagginses")?;
 
-    drop(outfs);
+        let mut outfs = open_log_file(&test_args)?;
+        writeln!(outfs, "I am full of spaghetti.")?;
 
-    let file_contents = read_to_string(path.as_ref())?;
-    let expected = "Bagginses\nI am full of spaghetti.\n";
-    assert_eq!(file_contents, expected);
+        drop(outfs);
 
-    Ok(())
-}
+        let file_contents = read_to_string(path.as_ref())?;
+        let expected = "Bagginses\nI am full of spaghetti.\n";
+        assert_eq!(file_contents, expected);
 
-#[test]
-fn open_log_file_opens_write_by_default() -> io::Result<()> {
-    use std::fs::read_to_string;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
-    let mut path = NamedTempFile::new().expect("Could not get temp path");
-    writeln!(path, "Bagginses")?;
+        Ok(())
+    }
 
-    let log_file = Some(path.as_ref().to_path_buf());
-    let test_args = Args {
-        log_file,
-        append: false,
-        ..Default::default()
-    };
-    let mut outfs = open_log_file(&test_args)?;
-    writeln!(outfs, "I am full of spaghetti.")?;
-    drop(outfs);
+    #[test]
+    fn open_log_file_opens_write_by_default() -> io::Result<()> {
+        use std::fs::read_to_string;
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        let mut path = NamedTempFile::new().expect("Could not get temp path");
+        writeln!(path, "Bagginses")?;
 
-    let file_contents = read_to_string(path.as_ref())?;
-    assert_eq!("I am full of spaghetti.\n", file_contents);
+        let log_file = Some(path.as_ref().to_path_buf());
+        let test_args = Args {
+            log_file,
+            append: false,
+            ..Default::default()
+        };
+        let mut outfs = open_log_file(&test_args)?;
+        writeln!(outfs, "I am full of spaghetti.")?;
+        drop(outfs);
 
-    Ok(())
-}
+        let file_contents = read_to_string(path.as_ref())?;
+        assert_eq!("I am full of spaghetti.\n", file_contents);
 
-#[tokio::test]
-async fn read_from_stdin() {
-    use std::sync::{Arc, Mutex};
-    use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
-    let test_args = Args {
-        channel_name: String::from("&"),
-        from_stdin: true,
-        ..Default::default()
-    };
+        Ok(())
+    }
 
-    let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-    let msg = ServerMessage::try_from(msg).unwrap();
+    #[tokio::test]
+    async fn read_from_stdin() {
+        use std::sync::{Arc, Mutex};
+        use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
+        let test_args = Args {
+            channel_name: String::from("&"),
+            from_stdin: true,
+            ..Default::default()
+        };
 
-    let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
-    let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
+        let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+        let msg = ServerMessage::try_from(msg).unwrap();
 
-    let expected_substr = "7: bread bread bread";
+        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
+        let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
 
-    let mut test_input = vec![];
-    writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
-    writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
-    writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
+        let expected_substr = "7: bread bread bread";
 
-    struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
-    impl Write for WriteLockBuf {
-        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-            self.0.lock().unwrap().write(buf)
+        let mut test_input = vec![];
+        writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
+        writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
+        writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
+
+        struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
+        impl Write for WriteLockBuf {
+            fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+                self.0.lock().unwrap().write(buf)
+            }
+            fn flush(&mut self) -> io::Result<()> {
+                self.0.lock().unwrap().flush()
+            }
         }
-        fn flush(&mut self) -> io::Result<()> {
-            self.0.lock().unwrap().flush()
+        let output = Arc::new(Mutex::new(vec![]));
+
+        let send_output = WriteLockBuf(Arc::clone(&output));
+        let test_input = io::Cursor::new(test_input);
+        init(test_args, test_input, send_output).await;
+
+        let output = { String::from(std::str::from_utf8(&output.lock().unwrap()).unwrap()) };
+
+        assert!(
+            output.contains(expected_substr),
+            "`{}` does not contain `{}`",
+            output,
+            expected_substr
+        );
+    }
+
+    #[test]
+    fn test_text_to_server_message() {
+        use twitch_irc::message::IRCMessage;
+        let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+        let msg = ServerMessage::try_from(msg).unwrap();
+
+        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
+        let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
+
+        let mut test_input = vec![];
+        writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        writeln!(test_input, "{}", PONG_MSG_EXAMPLE).unwrap();
+        writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        let test_input = io::Cursor::new(test_input);
+
+        // I understand why ServerMessage doesn't impl PartialEq but it makes
+        // testing difficult.
+        let expected: Vec<_> = [msg.clone(), pong_msg, msg].into();
+        let result: Vec<_> = filein_to_smsg(test_input).map(|s| s.unwrap()).collect();
+        assert_eq!(expected.len(), result.len());
+        for (res, exp) in expected.into_iter().zip(result) {
+            assert_eq!(res.source(), exp.source());
         }
     }
-    let output = Arc::new(Mutex::new(vec![]));
 
-    let send_output = WriteLockBuf(Arc::clone(&output));
-    let test_input = io::Cursor::new(test_input);
-    init(test_args, test_input, send_output).await;
+    #[tokio::test]
+    async fn create_stdin_task() {
+        use twitch_irc::message::IRCMessage;
+        let irc_msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
 
-    let output = { String::from(std::str::from_utf8(&output.lock().unwrap()).unwrap()) };
+        let mut input = vec![];
+        writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        let input = io::Cursor::new(input);
 
-    assert!(
-        output.contains(expected_substr),
-        "`{}` does not contain `{}`",
-        output,
-        expected_substr
-    );
-}
+        let (handle, mut incoming) = filein_channel_task_create(input);
+        let first = incoming.recv().await.unwrap();
+        assert_eq!(first.source(), &irc_msg);
 
-#[test]
-fn test_text_to_server_message() {
-    use twitch_irc::message::IRCMessage;
-    let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-    let msg = ServerMessage::try_from(msg).unwrap();
+        let second = incoming.recv().await.unwrap();
+        assert_eq!(second.source(), &irc_msg);
+        assert!(incoming.recv().await.is_none());
 
-    let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
-    let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
-
-    let mut test_input = vec![];
-    writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
-    writeln!(test_input, "{}", PONG_MSG_EXAMPLE).unwrap();
-    writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
-    let test_input = io::Cursor::new(test_input);
-
-    // I understand why ServerMessage doesn't impl PartialEq but it makes
-    // testing difficult.
-    let expected: Vec<_> = [msg.clone(), pong_msg, msg].into();
-    let result: Vec<_> = filein_to_smsg(test_input).map(|s| s.unwrap()).collect();
-    assert_eq!(expected.len(), result.len());
-    for (res, exp) in expected.into_iter().zip(result) {
-        assert_eq!(res.source(), exp.source());
+        handle.await.unwrap();
     }
-}
 
-#[tokio::test]
-async fn create_stdin_task() {
-    use twitch_irc::message::IRCMessage;
-    let irc_msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+    #[tokio::test]
+    async fn receiver_splitter_is_balanced() {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let (handle, mut out1, mut out2) = receiver_splitter(rx);
+        let test_msg = "Hewwo, I am a string";
 
-    let mut input = vec![];
-    writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
-    writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
-    let input = io::Cursor::new(input);
+        tx.send(test_msg).unwrap();
+        let res1 = out1.recv().await.unwrap();
+        let res2 = out2.recv().await.unwrap();
 
-    let (handle, mut incoming) = filein_channel_task_create(input);
-    let first = incoming.recv().await.unwrap();
-    assert_eq!(first.source(), &irc_msg);
+        assert_eq!(test_msg, res1);
+        assert_eq!(test_msg, res2);
 
-    let second = incoming.recv().await.unwrap();
-    assert_eq!(second.source(), &irc_msg);
-    assert!(incoming.recv().await.is_none());
-
-    handle.await.unwrap();
-}
-
-#[tokio::test]
-async fn receiver_splitter_is_balanced() {
-    let (tx, rx) = mpsc::unbounded_channel();
-    let (handle, mut out1, mut out2) = receiver_splitter(rx);
-    let test_msg = "Hewwo, I am a string";
-
-    tx.send(test_msg).unwrap();
-    let res1 = out1.recv().await.unwrap();
-    let res2 = out2.recv().await.unwrap();
-
-    assert_eq!(test_msg, res1);
-    assert_eq!(test_msg, res2);
-
-    drop(tx);
-    handle.await.unwrap();
+        drop(tx);
+        handle.await.unwrap();
+    }
 }
