@@ -182,6 +182,13 @@ mod test {
     use std::sync::{Arc, Mutex};
 
     struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
+    impl WriteLockBuf {
+        fn new() -> (Self, Arc<Mutex<Vec<u8>>>) {
+            let output = Arc::new(Mutex::new(vec![]));
+            let wrapped = WriteLockBuf(Arc::clone(&output));
+            (wrapped, output)
+        }
+    }
     impl Write for WriteLockBuf {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.0.lock().unwrap().write(buf)
@@ -287,9 +294,8 @@ mod test {
         writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
         writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
 
-        let output = Arc::new(Mutex::new(vec![]));
+        let (send_output, output) = WriteLockBuf::new();
 
-        let send_output = WriteLockBuf(Arc::clone(&output));
         let test_input = io::Cursor::new(test_input);
         init(test_args, test_input, send_output).await;
 
