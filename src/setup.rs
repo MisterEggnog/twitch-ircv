@@ -200,8 +200,8 @@ mod test {
         }
     }
 
-    /*#[tokio::test]
-    async fn write_raw_irc() {
+    #[tokio::test]
+    async fn write_raw_irc_matches_input() {
         use tokio::sync::mpsc::unbounded_channel;
         use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
 
@@ -211,15 +211,17 @@ mod test {
             print_raw_irc: true,
             ..Default::default()
         };
-        let mut fake_output = vec![];
+        let fake_stdout = WriteLockBuf::new();
 
         let (input, output) = unbounded_channel();
         input.send(example).unwrap();
-        setup_output(output, &args, &mut fake_output).await.unwrap();
+        setup_output(output, &args, fake_stdout.clone())
+            .await
+            .unwrap();
 
-        //let fake_output = String::from_utf8(fake_output.clone()).expect("Should be writing utf8");
-        assert_eq!(PRIVMSG_EXAMPLE.as_bytes(), fake_output);
-    }*/
+        let output_data = fake_stdout.get_data();
+        assert_eq!(PRIVMSG_EXAMPLE, output_data);
+    }
 
     #[test]
     fn append_switch_works() -> std::io::Result<()> {
