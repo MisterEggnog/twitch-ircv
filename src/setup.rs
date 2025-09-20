@@ -72,7 +72,7 @@ where
         task2.unwrap();
         task3.unwrap()
     } else {
-        let join_handle = setup_fancy_output(incoming_messages, stdout);
+        let join_handle = setup_output(incoming_messages, &args, stdout);
         join_handle.await.unwrap()
     }
 }
