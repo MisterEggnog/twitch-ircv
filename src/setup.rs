@@ -13,19 +13,37 @@ use crate::pretty_print::message_handler;
 
 pub type TwitchClient = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
 
-pub async fn init<W, R>(args: Args, stdin: R, stdout: W)
+pub async fn init<W, R>(args: Args, stdin: R, stdout: W) -> io::Result<()>
+where
+    W: Write + Send + 'static,
+    R: Read + Send + 'static,
+{
+    let res = init_no_error_handling(args, stdin, stdout).await;
+    if let Err(e) = res {
+        if e.kind() == io::ErrorKind::BrokenPipe {
+            Ok(())
+        } else {
+            Err(e)
+        }
+    } else {
+        Ok(())
+    }
+}
+
+pub async fn init_no_error_handling<W, R>(args: Args, stdin: R, stdout: W) -> io::Result<()>
 where
     W: Write + Send + 'static,
     R: Read + Send + 'static,
 {
     if args.from_stdin {
         let (handle, recv) = filein_channel_task_create(stdin);
-        let (handle_res, _) = tokio::join!(handle, init_with_input(args, recv, stdout));
+        let (handle_res, stdout_result) = tokio::join!(handle, init_with_input(args, recv, stdout));
         handle_res.unwrap();
+        stdout_result
     } else {
         let (incoming_messages, client) = build_irc_client();
         client.join(args.channel_name.clone()).unwrap();
-        init_with_input(args, incoming_messages, stdout).await;
+        init_with_input(args, incoming_messages, stdout).await
     }
 }
 
@@ -33,7 +51,8 @@ async fn init_with_input<W>(
     args: Args,
     incoming_messages: UnboundedReceiver<ServerMessage>,
     stdout: W,
-) where
+) -> io::Result<()>
+where
     W: Write + Send + 'static,
 {
     if args.log_file.is_some() {
@@ -41,19 +60,19 @@ async fn init_with_input<W>(
         let mut file = io::BufWriter::new(file);
 
         let (handle, rx1, mut rx2) = receiver_splitter(incoming_messages);
-        let fancy_task = setup_fancy_output(rx1, stdout);
+        let stdout_task = setup_fancy_output(rx1, stdout);
         let log_task = tokio::spawn(async move {
             while let Some(message) = rx2.recv().await {
                 log_v0(message, &mut file).await;
             }
         });
-        let (task1, task2, task3) = tokio::join!(handle, fancy_task, log_task);
+        let (task1, task2, task3) = tokio::join!(handle, log_task, stdout_task);
         task1.unwrap();
         task2.unwrap();
-        task3.unwrap();
+        task3.unwrap()
     } else {
-        let join_handle = setup_fancy_output(incoming_messages, stdout);
-        join_handle.await.unwrap();
+        let join_handle = setup_output(incoming_messages, &args, stdout);
+        join_handle.await.unwrap()
     }
 }
 
@@ -113,23 +132,38 @@ pub fn build_irc_client() -> (UnboundedReceiver<ServerMessage>, TwitchClient) {
     TwitchClient::new(config)
 }
 
+pub fn setup_output<W: Write + Send + 'static>(
+    mut incoming: UnboundedReceiver<ServerMessage>,
+    args: &Args,
+    stdout: W,
+) -> JoinHandle<io::Result<()>> {
+    use twitch_irc::message::AsRawIRC;
+    if args.print_raw_irc {
+        tokio::spawn(async move {
+            let mut stdout = stdout;
+            while let Some(message) = incoming.recv().await {
+                writeln!(stdout, "{}", message.as_raw_irc())?;
+            }
+            Ok(())
+        })
+    } else {
+        setup_fancy_output(incoming, stdout)
+    }
+}
+
 pub fn setup_fancy_output<W: Write + Send + 'static>(
     mut incoming: UnboundedReceiver<ServerMessage>,
     stdout: W,
-) -> JoinHandle<()> {
+) -> JoinHandle<io::Result<()>> {
     let startup_time = chrono::Utc::now();
     println!("Logging started at {}", startup_time);
 
     tokio::spawn(async move {
         let mut stdout = stdout;
         while let Some(message) = incoming.recv().await {
-            if !message_handler(message, startup_time, &mut stdout)
-                .await
-                .expect("Failed to write message")
-            {
-                break;
-            }
+            message_handler(message, startup_time, &mut stdout).await?;
         }
+        Ok(())
     })
 }
 
@@ -152,83 +186,21 @@ pub fn make_privmsg_example() -> twitch_irc::message::PrivmsgMessage {
 #[allow(dead_code)]
 pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
 
-#[test]
-fn append_switch_works() -> std::io::Result<()> {
-    use std::fs::read_to_string;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
-    let mut path = NamedTempFile::new().expect("Could not get temp path");
-
-    let log_file = Some(path.as_ref().to_path_buf());
-    let append = true;
-    let test_args = Args {
-        log_file,
-        append,
-        ..Default::default()
-    };
-
-    writeln!(path, "Bagginses")?;
-
-    let mut outfs = open_log_file(&test_args)?;
-    writeln!(outfs, "I am full of spaghetti.")?;
-
-    drop(outfs);
-
-    let file_contents = read_to_string(path.as_ref())?;
-    let expected = "Bagginses\nI am full of spaghetti.\n";
-    assert_eq!(file_contents, expected);
-
-    Ok(())
-}
-
-#[test]
-fn open_log_file_opens_write_by_default() -> io::Result<()> {
-    use std::fs::read_to_string;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
-    let mut path = NamedTempFile::new().expect("Could not get temp path");
-    writeln!(path, "Bagginses")?;
-
-    let log_file = Some(path.as_ref().to_path_buf());
-    let test_args = Args {
-        log_file,
-        append: false,
-        ..Default::default()
-    };
-    let mut outfs = open_log_file(&test_args)?;
-    writeln!(outfs, "I am full of spaghetti.")?;
-    drop(outfs);
-
-    let file_contents = read_to_string(path.as_ref())?;
-    assert_eq!("I am full of spaghetti.\n", file_contents);
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn read_from_stdin() {
+#[cfg(test)]
+mod test {
+    use super::*;
     use std::sync::{Arc, Mutex};
-    use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
-    let test_args = Args {
-        channel_name: String::from("&"),
-        from_stdin: true,
-        ..Default::default()
-    };
 
-    let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-    let msg = ServerMessage::try_from(msg).unwrap();
-
-    let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
-    let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
-
-    let expected_substr = "7: bread bread bread";
-
-    let mut test_input = vec![];
-    writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
-    writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
-    writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
-
+    #[derive(Clone)]
     struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
+    impl WriteLockBuf {
+        fn new() -> Self {
+            WriteLockBuf(Arc::new(Mutex::new(vec![])))
+        }
+        fn get_data(&self) -> String {
+            String::from(std::str::from_utf8(&self.0.lock().unwrap()).unwrap())
+        }
+    }
     impl Write for WriteLockBuf {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.0.lock().unwrap().write(buf)
@@ -237,81 +209,184 @@ async fn read_from_stdin() {
             self.0.lock().unwrap().flush()
         }
     }
-    let output = Arc::new(Mutex::new(vec![]));
 
-    let send_output = WriteLockBuf(Arc::clone(&output));
-    let test_input = io::Cursor::new(test_input);
-    init(test_args, test_input, send_output).await;
+    #[tokio::test]
+    async fn write_raw_irc_matches_input() {
+        use tokio::sync::mpsc::unbounded_channel;
+        use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
 
-    let output = { String::from(std::str::from_utf8(&output.lock().unwrap()).unwrap()) };
+        let example = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+        let example = ServerMessage::try_from(example).unwrap();
+        let args = Args {
+            print_raw_irc: true,
+            ..Default::default()
+        };
+        let privmsg_example = format!("{}\n", example.as_raw_irc());
+        let fake_stdout = WriteLockBuf::new();
 
-    assert!(
-        output.contains(expected_substr),
-        "`{}` does not contain `{}`",
-        output,
-        expected_substr
-    );
-}
+        let (input, output) = unbounded_channel();
+        input.send(example).unwrap();
+        drop(input);
+        let _ = setup_output(output, &args, fake_stdout.clone())
+            .await
+            .unwrap();
 
-#[test]
-fn test_text_to_server_message() {
-    use twitch_irc::message::IRCMessage;
-    let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-    let msg = ServerMessage::try_from(msg).unwrap();
-
-    let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
-    let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
-
-    let mut test_input = vec![];
-    writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
-    writeln!(test_input, "{}", PONG_MSG_EXAMPLE).unwrap();
-    writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
-    let test_input = io::Cursor::new(test_input);
-
-    // I understand why ServerMessage doesn't impl PartialEq but it makes
-    // testing difficult.
-    let expected: Vec<_> = [msg.clone(), pong_msg, msg].into();
-    let result: Vec<_> = filein_to_smsg(test_input).map(|s| s.unwrap()).collect();
-    assert_eq!(expected.len(), result.len());
-    for (res, exp) in expected.into_iter().zip(result) {
-        assert_eq!(res.source(), exp.source());
+        // This program will change the order of the irc message tags when
+        // building the `source` message, so I need to do this.
+        let output_data = fake_stdout.get_data();
+        assert_eq!(privmsg_example, output_data);
     }
-}
 
-#[tokio::test]
-async fn create_stdin_task() {
-    use twitch_irc::message::IRCMessage;
-    let irc_msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+    #[test]
+    fn append_switch_works() -> std::io::Result<()> {
+        use std::fs::read_to_string;
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        let mut path = NamedTempFile::new().expect("Could not get temp path");
 
-    let mut input = vec![];
-    writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
-    writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
-    let input = io::Cursor::new(input);
+        let log_file = Some(path.as_ref().to_path_buf());
+        let append = true;
+        let test_args = Args {
+            log_file,
+            append,
+            ..Default::default()
+        };
 
-    let (handle, mut incoming) = filein_channel_task_create(input);
-    let first = incoming.recv().await.unwrap();
-    assert_eq!(first.source(), &irc_msg);
+        writeln!(path, "Bagginses")?;
 
-    let second = incoming.recv().await.unwrap();
-    assert_eq!(second.source(), &irc_msg);
-    assert!(incoming.recv().await.is_none());
+        let mut outfs = open_log_file(&test_args)?;
+        writeln!(outfs, "I am full of spaghetti.")?;
 
-    handle.await.unwrap();
-}
+        drop(outfs);
 
-#[tokio::test]
-async fn receiver_splitter_is_balanced() {
-    let (tx, rx) = mpsc::unbounded_channel();
-    let (handle, mut out1, mut out2) = receiver_splitter(rx);
-    let test_msg = "Hewwo, I am a string";
+        let file_contents = read_to_string(path.as_ref())?;
+        let expected = "Bagginses\nI am full of spaghetti.\n";
+        assert_eq!(file_contents, expected);
 
-    tx.send(test_msg).unwrap();
-    let res1 = out1.recv().await.unwrap();
-    let res2 = out2.recv().await.unwrap();
+        Ok(())
+    }
 
-    assert_eq!(test_msg, res1);
-    assert_eq!(test_msg, res2);
+    #[test]
+    fn open_log_file_opens_write_by_default() -> io::Result<()> {
+        use std::fs::read_to_string;
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        let mut path = NamedTempFile::new().expect("Could not get temp path");
+        writeln!(path, "Bagginses")?;
 
-    drop(tx);
-    handle.await.unwrap();
+        let log_file = Some(path.as_ref().to_path_buf());
+        let test_args = Args {
+            log_file,
+            append: false,
+            ..Default::default()
+        };
+        let mut outfs = open_log_file(&test_args)?;
+        writeln!(outfs, "I am full of spaghetti.")?;
+        drop(outfs);
+
+        let file_contents = read_to_string(path.as_ref())?;
+        assert_eq!("I am full of spaghetti.\n", file_contents);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn read_from_stdin() {
+        use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
+        let test_args = Args {
+            channel_name: String::from("&"),
+            from_stdin: true,
+            ..Default::default()
+        };
+
+        let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+        let msg = ServerMessage::try_from(msg).unwrap();
+
+        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
+        let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
+
+        let expected_substr = "7: bread bread bread";
+
+        let mut test_input = vec![];
+        writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
+        writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
+        writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
+
+        let output = WriteLockBuf::new();
+
+        let test_input = io::Cursor::new(test_input);
+        let _ = init(test_args, test_input, output.clone()).await;
+
+        let output_data = output.get_data();
+
+        assert!(
+            output_data.contains(expected_substr),
+            "`{}` does not contain `{}`",
+            output_data,
+            expected_substr
+        );
+    }
+
+    #[test]
+    fn test_text_to_server_message() {
+        use twitch_irc::message::IRCMessage;
+        let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+        let msg = ServerMessage::try_from(msg).unwrap();
+
+        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
+        let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
+
+        let mut test_input = vec![];
+        writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        writeln!(test_input, "{}", PONG_MSG_EXAMPLE).unwrap();
+        writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        let test_input = io::Cursor::new(test_input);
+
+        // I understand why ServerMessage doesn't impl PartialEq but it makes
+        // testing difficult.
+        let expected: Vec<_> = [msg.clone(), pong_msg, msg].into();
+        let result: Vec<_> = filein_to_smsg(test_input).map(|s| s.unwrap()).collect();
+        assert_eq!(expected.len(), result.len());
+        for (res, exp) in expected.into_iter().zip(result) {
+            assert_eq!(res.source(), exp.source());
+        }
+    }
+
+    #[tokio::test]
+    async fn create_stdin_task() {
+        use twitch_irc::message::IRCMessage;
+        let irc_msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+
+        let mut input = vec![];
+        writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        let input = io::Cursor::new(input);
+
+        let (handle, mut incoming) = filein_channel_task_create(input);
+        let first = incoming.recv().await.unwrap();
+        assert_eq!(first.source(), &irc_msg);
+
+        let second = incoming.recv().await.unwrap();
+        assert_eq!(second.source(), &irc_msg);
+        assert!(incoming.recv().await.is_none());
+
+        handle.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn receiver_splitter_is_balanced() {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let (handle, mut out1, mut out2) = receiver_splitter(rx);
+        let test_msg = "Hewwo, I am a string";
+
+        tx.send(test_msg).unwrap();
+        let res1 = out1.recv().await.unwrap();
+        let res2 = out2.recv().await.unwrap();
+
+        assert_eq!(test_msg, res1);
+        assert_eq!(test_msg, res2);
+
+        drop(tx);
+        handle.await.unwrap();
+    }
 }

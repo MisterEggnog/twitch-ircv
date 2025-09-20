@@ -7,6 +7,10 @@ use std::path::PathBuf;
 /// Note:
 /// * Color can be prohibited with the enviromental variable NO_COLOR.
 /// * Color can be forced using the enviromental variable CLICOLOR_FORCE.
+///
+/// Warning:
+/// print-raw-irc does not give consistent output, you cannot feed the output
+/// of this into `from-stdin`, & have the same result.
 #[derive(FromArgs, Default)]
 pub struct Args {
     #[argh(positional)]
@@ -25,4 +29,8 @@ pub struct Args {
     /// ignored.
     #[argh(switch)]
     pub from_stdin: bool,
+
+    /// output the raw irc
+    #[argh(switch)]
+    pub print_raw_irc: bool,
 }
