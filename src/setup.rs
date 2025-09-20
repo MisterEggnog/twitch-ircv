@@ -222,6 +222,7 @@ mod test {
             print_raw_irc: true,
             ..Default::default()
         };
+        let privmsg_example = format!("{}\n", example.as_raw_irc());
         let fake_stdout = WriteLockBuf::new();
 
         let (input, output) = unbounded_channel();
@@ -231,8 +232,10 @@ mod test {
             .await
             .unwrap();
 
+        // This program will change the order of the irc message tags when
+        // building the `source` message, so I need to do this.
         let output_data = fake_stdout.get_data();
-        assert_eq!(PRIVMSG_EXAMPLE, output_data);
+        assert_eq!(privmsg_example, output_data);
     }
 
     #[test]
