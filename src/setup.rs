@@ -226,6 +226,7 @@ mod test {
 
         let (input, output) = unbounded_channel();
         input.send(example).unwrap();
+        drop(input);
         setup_output(output, &args, fake_stdout.clone())
             .await
             .unwrap();
