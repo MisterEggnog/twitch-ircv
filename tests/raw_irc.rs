@@ -1,4 +1,4 @@
-use std::fs::{read_to_string, File};
+use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -10,14 +10,15 @@ use twitch_irc::message::IRCMessage;
 #[test]
 fn raw_irc_mimics_input() -> io::Result<()> {
     let input_file = "tests/irc_data_no_ping";
-    let irc_data = read_to_string(&input_file)?;
     let irc_data: Vec<String> = BufReader::new(File::open(&input_file)?)
         .lines()
         .map(|l| l.unwrap())
-        .map(|mut l| {
-            l.pop().unwrap();
-            //IRCMessage::parse(&l).unwrap().as_raw_irc()
-            l
+        .map(|l| {
+            let l = l.trim();
+            let irc = IRCMessage::parse(&l).expect("This was irc to begin with");
+            // Program changes layout of tags during processing
+            // this doesn't fix all of the issues.
+            irc.as_raw_irc()
         })
         .collect();
 
@@ -26,18 +27,20 @@ fn raw_irc_mimics_input() -> io::Result<()> {
         .args(["notachannel", "--from-stdin", "--print-raw-irc"])
         .stdin(input)
         .output()?;
+
     let data: Vec<String> = result
         .stdout
         .lines()
         .map(|l| l.unwrap())
-        .map(|mut l| {
-            l.pop().unwrap();
-            l
-        })
+        .map(|l| l.trim().to_string())
         .collect();
     let err_str = String::from_utf8(result.stderr).unwrap();
+
     assert_eq!(result.status.code(), Some(0), "{}", err_str);
-    assert_eq!(irc_data, data);
+    assert_eq!(irc_data.len(), data.len(), "irc line count differs");
+    for (example, result) in irc_data.iter().zip(data.iter()) {
+        assert_eq!(example, result);
+    }
 
     Ok(())
 }
