@@ -13,7 +13,6 @@ use crate::pretty_print::message_handler;
 
 pub type TwitchClient = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
 
-#[allow(unused_must_use)]
 pub async fn init<W, R>(args: Args, stdin: R, stdout: W) -> io::Result<()>
 where
     W: Write + Send + 'static,
@@ -228,7 +227,7 @@ mod test {
         let (input, output) = unbounded_channel();
         input.send(example).unwrap();
         drop(input);
-        setup_output(output, &args, fake_stdout.clone())
+        let _ = setup_output(output, &args, fake_stdout.clone())
             .await
             .unwrap();
 
@@ -316,7 +315,7 @@ mod test {
         let output = WriteLockBuf::new();
 
         let test_input = io::Cursor::new(test_input);
-        init(test_args, test_input, output.clone()).await;
+        let _ = init(test_args, test_input, output.clone()).await;
 
         let output_data = output.get_data();
 
