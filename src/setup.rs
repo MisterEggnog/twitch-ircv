@@ -138,7 +138,18 @@ pub fn setup_output<W: Write + Send + 'static>(
     args: &Args,
     stdout: W,
 ) -> JoinHandle<io::Result<()>> {
-    todo!()
+    use twitch_irc::message::AsRawIRC;
+    if args.print_raw_irc {
+        tokio::spawn(async move {
+            let mut stdout = stdout;
+            while let Some(message) = incoming.recv().await {
+                writeln!(stdout, "{}", message.as_raw_irc())?;
+            }
+            Ok(())
+        })
+    } else {
+        setup_fancy_output(incoming, stdout)
+    }
 }
 
 pub fn setup_fancy_output<W: Write + Send + 'static>(
