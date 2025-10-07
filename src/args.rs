@@ -13,6 +13,19 @@ use std::path::PathBuf;
 /// print-raw-irc does not give consistent output, you cannot feed the output
 /// of this into `from-stdin`, & have the same result.
 #[derive(FromArgs, Default, Parser)]
+#[command(long_about = concat!(
+"Pretty print twitch chat\n",
+"\n",
+"Also offers support for logging (most) of the irc messages posted in chat.\n",
+"\n",
+"Warning:\n",
+"  print-raw-irc does not give consistent output, you cannot feed the output\n",
+"  of this into itself using `from-stdin` & have the same result.\n",
+"\n",
+"Enviromental Variables:\n",
+"  • NO_COLOR: Prohibits color output.\n",
+"  • CLICOLOR_FORCE: Forces color output.",
+))]
 pub struct Args {
     #[argh(positional)]
     pub channel_name: String,
