@@ -28,8 +28,6 @@ pub struct Args {
     pub append: bool,
 
     /// don't connect to a twitch irc channel, read raw irc from stdin.
-    /// Note that you are still required to include a channel_name, it will be
-    /// ignored.
     #[arg(long)]
     pub from_stdin: bool,
 
