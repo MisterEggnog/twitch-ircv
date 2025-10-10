@@ -1,6 +1,7 @@
 use clap::Parser;
 use std::path::PathBuf;
 
+/// Pretty print the live chat of a twitch channel
 #[derive(Default, Parser)]
 #[command(long_about = concat!(
 "Pretty print twitch chat\n",
