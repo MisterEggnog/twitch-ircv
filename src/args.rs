@@ -12,7 +12,7 @@ use std::path::PathBuf;
 "  print-raw-irc does not give consistent output, you cannot feed the output\n",
 "  of this into itself using `from-stdin` & have the same result.\n",
 "\n",
-"Enviromental Variables:\n",
+"Environmental Variables:\n",
 "  • NO_COLOR: Prohibits color output.\n",
 "  • CLICOLOR_FORCE: Forces color output.",
 ))]
