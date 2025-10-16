@@ -17,9 +17,9 @@ fn custom_datetime_env_variable() -> io::Result<()> {
     let input = File::open(&input_file)?;
 
     let result = Command::new(env!("CARGO_BIN_EXE_twitch-ircv"))
-        .args(["notachannel", "--from-stdin", "--print-raw-irc"])
+        .args(["notachannel", "--from-stdin"])
         .stdin(input)
-        // TODO pass TWITCH_IRCV_START_TIME env variable
+        .env("TWITCH_IRCV_START_TIME", "1713727103.972")
         .output()?;
 
     let data: Vec<String> = result
@@ -31,7 +31,19 @@ fn custom_datetime_env_variable() -> io::Result<()> {
     let err_str = String::from_utf8(result.stderr).unwrap();
 
     assert_eq!(result.status.code(), Some(0), "{}", err_str);
-    // TODO specific tests
+
+    let mut data = data.into_iter();
+    // Drop first line
+    let _ = data.next().unwrap();
+    let message_prefixs = ["00:00:01", "00:00:02", "00:00:03"];
+    for (result, expected_start) in data.zip(message_prefixs) {
+        assert!(
+            result.starts_with(expected_start),
+            "`{}` should start with `{}`",
+            result,
+            expected_start
+        );
+    }
 
     Ok(())
 }
