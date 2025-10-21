@@ -1,3 +1,5 @@
+use chrono::{DateTime, Utc};
+use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
@@ -149,6 +151,10 @@ pub fn setup_output<W: Write + Send + 'static>(
     } else {
         setup_fancy_output(incoming, stdout)
     }
+}
+
+fn get_time_current_or_var(env_var: Result<String, env::VarError>) -> DateTime<Utc> {
+    todo!()
 }
 
 pub fn setup_fancy_output<W: Write + Send + 'static>(
