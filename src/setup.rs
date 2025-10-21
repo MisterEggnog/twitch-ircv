@@ -154,7 +154,10 @@ pub fn setup_output<W: Write + Send + 'static>(
 }
 
 fn get_time_current_or_var(env_var: Result<String, env::VarError>) -> DateTime<Utc> {
-    todo!()
+    if let Ok(message_str) = env_var {
+        todo!()
+    }
+    Utc::now()
 }
 
 pub fn setup_fancy_output<W: Write + Send + 'static>(
@@ -270,6 +273,17 @@ mod test {
         assert_eq!(file_contents, expected);
 
         Ok(())
+    }
+
+    #[test]
+    fn env_var_get_time_produces_current_time_with_nothing() {
+        use chrono::TimeDelta;
+        use std::env::VarError;
+        let acceptable_range = TimeDelta::minutes(5);
+        let current_time = Utc::now();
+        let result = get_time_current_or_var(Err(VarError::NotPresent));
+        let difference = (result - current_time).abs();
+        assert!(difference < acceptable_range, "{}", result);
     }
 
     #[test]
