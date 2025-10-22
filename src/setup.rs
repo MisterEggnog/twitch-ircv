@@ -276,6 +276,19 @@ mod test {
     }
 
     #[test]
+    fn env_var_get_time_works_with_valid_str() {
+        let milliseconds = 1761108680812;
+        let datetime_str = format!("{}", milliseconds);
+        let datetime = DateTime::from_timestamp_millis(milliseconds).unwrap();
+        let result = get_time_current_or_var(Ok(datetime_str));
+        assert_eq!(
+            datetime, result,
+            "Expected: {}, result: {}",
+            datetime, result
+        );
+    }
+
+    #[test]
     fn env_var_get_time_produces_current_time_with_nothing() {
         use chrono::TimeDelta;
         use std::env::VarError;
