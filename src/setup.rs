@@ -153,11 +153,14 @@ pub fn setup_output<W: Write + Send + 'static>(
     }
 }
 
+fn time_parsing(timestr: Result<String, env::VarError>) -> Option<DateTime<Utc>> {
+    let message_str = timestr.ok()?;
+    let milli = message_str.parse().ok()?;
+    DateTime::from_timestamp_millis(milli)
+}
+
 fn get_time_current_or_var(env_var: Result<String, env::VarError>) -> DateTime<Utc> {
-    if let Ok(message_str) = env_var {
-        todo!()
-    }
-    Utc::now()
+    time_parsing(env_var).unwrap_or_else(Utc::now)
 }
 
 pub fn setup_fancy_output<W: Write + Send + 'static>(
