@@ -153,14 +153,14 @@ pub fn setup_output<W: Write + Send + 'static>(
     }
 }
 
-fn time_parsing(timestr: Result<String, env::VarError>) -> Option<DateTime<Utc>> {
+fn arg_str_time_parse(timestr: Result<String, env::VarError>) -> Option<DateTime<Utc>> {
     let message_str = timestr.ok()?;
     let milli = message_str.parse().ok()?;
     DateTime::from_timestamp_millis(milli)
 }
 
 fn get_time_current_or_var(env_var: Result<String, env::VarError>) -> DateTime<Utc> {
-    time_parsing(env_var).unwrap_or_else(Utc::now)
+    arg_str_time_parse(env_var).unwrap_or_else(Utc::now)
 }
 
 pub fn setup_fancy_output<W: Write + Send + 'static>(
@@ -279,11 +279,11 @@ mod test {
     }
 
     #[test]
-    fn env_var_get_time_works_with_valid_str() {
+    fn arg_str_time_parse_parses_valid_str() {
         let milliseconds = 1761108680812;
         let datetime_str = format!("{}", milliseconds);
         let datetime = DateTime::from_timestamp_millis(milliseconds).unwrap();
-        let result = get_time_current_or_var(Ok(datetime_str));
+        let result = arg_str_time_parse(Ok(datetime_str)).expect("failed to parse arg str");
         assert_eq!(
             datetime, result,
             "Expected: {}, result: {}",
