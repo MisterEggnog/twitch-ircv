@@ -159,10 +159,6 @@ fn arg_str_time_parse(timestr: Result<String, env::VarError>) -> Option<DateTime
     DateTime::from_timestamp_millis(milli)
 }
 
-fn get_time_current_or_var(env_var: Result<String, env::VarError>) -> DateTime<Utc> {
-    arg_str_time_parse(env_var).unwrap_or_else(Utc::now)
-}
-
 pub fn setup_fancy_output<W: Write + Send + 'static>(
     mut incoming: UnboundedReceiver<ServerMessage>,
     stdout: W,
@@ -297,7 +293,7 @@ mod test {
         use std::env::VarError;
         let acceptable_range = TimeDelta::minutes(5);
         let current_time = Utc::now();
-        let result = get_time_current_or_var(Err(VarError::NotPresent));
+        let result = arg_str_time_parse(Err(VarError::NotPresent)).unwrap_or_else(Utc::now);
         let difference = (result - current_time).abs();
         assert!(difference < acceptable_range, "{}", result);
     }
