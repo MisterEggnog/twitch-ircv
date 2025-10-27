@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::prelude::*;
 use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
