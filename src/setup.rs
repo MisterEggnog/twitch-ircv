@@ -288,14 +288,13 @@ mod test {
     }
 
     #[test]
-    fn env_var_get_time_produces_current_time_with_nothing() {
-        use chrono::TimeDelta;
+    fn env_var_get_time_returns_none_on_bad_cases() {
         use std::env::VarError;
-        let acceptable_range = TimeDelta::minutes(5);
-        let current_time = Utc::now();
-        let result = arg_str_time_parse(Err(VarError::NotPresent)).unwrap_or_else(Utc::now);
-        let difference = (result - current_time).abs();
-        assert!(difference < acceptable_range, "{}", result);
+        let result_not_present = arg_str_time_parse(Err(VarError::NotPresent));
+        assert!(result_not_present.is_none());
+
+        let result_from_garbage = arg_str_time_parse(Ok(String::from("eeeyiay")));
+        assert!(result_from_garbage.is_none());
     }
 
     #[test]
