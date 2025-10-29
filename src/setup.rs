@@ -164,7 +164,7 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
     stdout: W,
 ) -> JoinHandle<io::Result<()>> {
     let startup_time =
-        arg_str_time_parse(env::var("TWITCH_IRCV_START_TIME")).unwrap_or_else(|| Utc::now());
+        arg_str_time_parse(env::var("TWITCH_IRCV_START_TIME")).unwrap_or_else(Utc::now);
     println!("Logging started at {}", startup_time);
 
     tokio::spawn(async move {
