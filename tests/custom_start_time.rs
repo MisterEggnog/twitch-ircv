@@ -1,16 +1,11 @@
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
-use std::io::BufReader;
 use std::process::Command;
 
-// Parse's datetime from the example produced by
-// date +%s.%N
-// To do this run
-// TWITCH_IRCV_START_TIME={seconds}.{nanoseconds}
-// These are seconds since UNIX timestamp
-//
-// This is probably parsed using DateTime::from_timestamp
+// TWITCH_IRCV_START_TIME={milliseconds}
+// Parses milliseconds since UNIX epoch
+// This is the same thats used for the tmi-sent-ts tag.
 #[test]
 fn custom_datetime_env_variable() -> io::Result<()> {
     let input_file = "tests/irc_data_no_ping";
@@ -19,7 +14,7 @@ fn custom_datetime_env_variable() -> io::Result<()> {
     let result = Command::new(env!("CARGO_BIN_EXE_twitch-ircv"))
         .args(["notachannel", "--from-stdin"])
         .stdin(input)
-        .env("TWITCH_IRCV_START_TIME", "1713727103.972")
+        .env("TWITCH_IRCV_START_TIME", "1713727101276")
         .output()?;
 
     let data: Vec<String> = result
@@ -35,7 +30,7 @@ fn custom_datetime_env_variable() -> io::Result<()> {
     let mut data = data.into_iter();
     // Drop first line
     let _ = data.next().unwrap();
-    let message_prefixs = ["00:00:01", "00:00:02", "00:00:03"];
+    let message_prefixs = ["00:00:00", "00:00:01", "00:00:02"];
     for (result, expected_start) in data.zip(message_prefixs) {
         assert!(
             result.starts_with(expected_start),
