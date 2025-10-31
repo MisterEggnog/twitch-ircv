@@ -1,3 +1,5 @@
+use chrono::prelude::*;
+use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
@@ -151,11 +153,18 @@ pub fn setup_output<W: Write + Send + 'static>(
     }
 }
 
+fn arg_str_time_parse(timestr: Result<String, env::VarError>) -> Option<DateTime<Utc>> {
+    let message_str = timestr.ok()?;
+    let milli = message_str.parse().ok()?;
+    DateTime::from_timestamp_millis(milli)
+}
+
 pub fn setup_fancy_output<W: Write + Send + 'static>(
     mut incoming: UnboundedReceiver<ServerMessage>,
     stdout: W,
 ) -> JoinHandle<io::Result<()>> {
-    let startup_time = chrono::Utc::now();
+    let startup_time =
+        arg_str_time_parse(env::var("TWITCH_IRCV_START_TIME")).unwrap_or_else(Utc::now);
     println!("Logging started at {}", startup_time);
 
     tokio::spawn(async move {
@@ -264,6 +273,29 @@ mod test {
         assert_eq!(file_contents, expected);
 
         Ok(())
+    }
+
+    #[test]
+    fn arg_str_time_parse_parses_valid_str() {
+        let milliseconds = 1761108680812;
+        let datetime_str = format!("{}", milliseconds);
+        let datetime = DateTime::from_timestamp_millis(milliseconds).unwrap();
+        let result = arg_str_time_parse(Ok(datetime_str)).expect("failed to parse arg str");
+        assert_eq!(
+            datetime, result,
+            "Expected: {}, result: {}",
+            datetime, result
+        );
+    }
+
+    #[test]
+    fn env_var_get_time_returns_none_on_bad_cases() {
+        use std::env::VarError;
+        let result_not_present = arg_str_time_parse(Err(VarError::NotPresent));
+        assert!(result_not_present.is_none());
+
+        let result_from_garbage = arg_str_time_parse(Ok(String::from("eeeyiay")));
+        assert!(result_from_garbage.is_none());
     }
 
     #[test]
