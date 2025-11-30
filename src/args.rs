@@ -17,7 +17,7 @@ use std::path::PathBuf;
 "  • CLICOLOR_FORCE: Forces color output.\n",
 "  • TWITCH_IRCV_START_TIME={milliseconds}: Change default start time to the\n",
 "    passed value."
-))]
+), version)]
 pub struct Args {
     pub channel_name: String,
 
