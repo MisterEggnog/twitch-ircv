@@ -17,7 +17,14 @@ use std::path::PathBuf;
 "  • CLICOLOR_FORCE: Forces color output.\n",
 "  • TWITCH_IRCV_START_TIME={milliseconds}: Change default start time to the\n",
 "    passed value."
-), version)]
+), version, after_long_help = concat!(
+"Repository: ", env!("CARGO_PKG_REPOSITORY"), "\n",
+"\n",
+"This program comes with ABSOLUTELY NO WARRANTY.\n",
+"This is free software, and you are welcome to redistribute it under certain\n",
+"conditions. For more information visit:\n",
+"https://www.gnu.org/licenses/gpl-3.0.html\n"
+))]
 pub struct Args {
     pub channel_name: String,
 
