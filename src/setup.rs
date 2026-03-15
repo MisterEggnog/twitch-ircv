@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
+use std::ops::AsyncFnMut;
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio::task::JoinHandle;
 use twitch_irc::login::StaticLoginCredentials;
@@ -174,6 +175,20 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
         }
         Ok(())
     })
+}
+
+async fn read_receiver_to_closure<F>(
+    mut writer: F,
+    mut incoming: UnboundedReceiver<ServerMessage>,
+) -> io::Result<()>
+where
+    F: AsyncFnMut(ServerMessage) -> io::Result<()>,
+{
+    while let Some(message) = incoming.recv().await {
+        writer(message).await?;
+    }
+
+    Ok(())
 }
 
 /// This was created with a lot of trial & error, mainly the tags
