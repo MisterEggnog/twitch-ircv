@@ -5,6 +5,7 @@ use std::io::{self, prelude::*};
 use std::ops::AsyncFnMut;
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::ServerMessage;
 use twitch_irc::TwitchIRCClient;
@@ -45,8 +46,21 @@ where
         stdout_result
     } else {
         let (incoming_messages, client) = build_irc_client();
+
         client.join(args.channel_name.clone()).unwrap();
-        init_with_input(args, incoming_messages, stdout).await
+        let close_irc = CancellationToken::new();
+        let irc_cancelled = close_irc.clone();
+        let client_closer = tokio::spawn(async move {
+            irc_cancelled.cancelled().await;
+            drop(client);
+        });
+
+        let res = init_with_input(args, incoming_messages, stdout).await;
+        close_irc.cancel();
+        client_closer
+            .await
+            .expect("IRC reader cancelled or panicked");
+        res
     }
 }
 
