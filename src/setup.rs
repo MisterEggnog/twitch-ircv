@@ -40,7 +40,9 @@ where
     R: Read + Send + 'static,
 {
     if args.from_stdin {
-        let (handle, recv) = filein_channel_task_create(stdin);
+        let stop_reading = CancellationToken::new();
+
+        let (handle, recv) = filein_channel_task_create(stdin, stop_reading);
         let (handle_res, stdout_result) = tokio::join!(handle, init_with_input(args, recv, stdout));
         handle_res.unwrap();
         stdout_result
@@ -114,12 +116,16 @@ fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = io::Result<Serve
 
 fn filein_channel_task_create<R: Read + Send + 'static>(
     input: R,
+    stop: CancellationToken,
 ) -> (JoinHandle<()>, UnboundedReceiver<ServerMessage>) {
     let (tx, rx) = mpsc::unbounded_channel();
     let stdin_read_task = tokio::spawn(async move {
         let input = io::BufReader::new(input);
         for msg in filein_to_smsg(input) {
             tx.send(msg.unwrap()).unwrap();
+            if stop.is_cancelled() {
+                break;
+            }
         }
     });
     (stdin_read_task, rx)
@@ -423,7 +429,8 @@ mod test {
         writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
         let input = io::Cursor::new(input);
 
-        let (handle, mut incoming) = filein_channel_task_create(input);
+        let dummy_cancel = CancellationToken::new();
+        let (handle, mut incoming) = filein_channel_task_create(input, dummy_cancel);
         let first = incoming.recv().await.unwrap();
         assert_eq!(first.source(), &irc_msg);
 
@@ -432,6 +439,11 @@ mod test {
         assert!(incoming.recv().await.is_none());
 
         handle.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn filein_task_cancels() {
+        todo!()
     }
 
     #[tokio::test]
