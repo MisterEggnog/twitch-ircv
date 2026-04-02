@@ -443,7 +443,20 @@ mod test {
 
     #[tokio::test]
     async fn filein_task_cancels() {
-        todo!()
+        // TODO terminate if running to long
+        use iter_read::IterRead;
+        use std::iter::repeat;
+
+        let irc_msg = format!("{}\n", PRIVMSG_EXAMPLE);
+        let looped_input = repeat(irc_msg).map(|s| s.as_bytes().to_owned()).flatten();
+
+        let reader = IterRead::new(looped_input);
+        let cancel = CancellationToken::new();
+        let (reader_task, mut out) = filein_channel_task_create(reader, cancel.clone());
+
+        cancel.cancel();
+        while let Some(_) = out.recv().await {}
+        let _ = reader_task.await.expect("task panicked");
     }
 
     #[tokio::test]

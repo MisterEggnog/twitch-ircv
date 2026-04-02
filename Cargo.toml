@@ -17,4 +17,5 @@ tokio-util = { version = "0.7.18", default-features = false }
 twitch-irc = "5.0.1"
 
 [dev-dependencies]
+iter-read = "1.1.0"
 tempfile = "3.23.0"
