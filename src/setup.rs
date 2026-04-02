@@ -442,9 +442,9 @@ mod test {
 
     #[tokio::test]
     async fn filein_task_cancels() {
-        // TODO terminate if running to long
         use iter_read::IterRead;
         use std::iter::repeat;
+        use tokio::time::{sleep, Duration};
 
         let irc_msg = format!("{}\n", PRIVMSG_EXAMPLE);
         let looped_input = repeat(irc_msg).map(|s| s.as_bytes().to_owned()).flatten();
@@ -453,9 +453,21 @@ mod test {
         let cancel = CancellationToken::new();
         let (reader_task, mut out) = filein_channel_task_create(reader, cancel.clone());
 
-        cancel.cancel();
-        while let Some(_) = out.recv().await {}
-        let _ = reader_task.await.expect("task panicked");
+        let test_task = tokio::spawn(async move {
+            cancel.cancel();
+            while let Some(_) = out.recv().await {}
+            let _ = reader_task.await.expect("task panicked");
+        });
+
+        let timeout = sleep(Duration::from_mins(1));
+        tokio::select! {
+            _ = timeout => {
+                panic!("task timed out")
+            }
+            res = test_task => {
+                res.unwrap()
+            }
+        }
     }
 
     #[tokio::test]
