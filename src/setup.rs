@@ -119,11 +119,10 @@ fn filein_channel_task_create<R: Read + Send + 'static>(
     stop: CancellationToken,
 ) -> (JoinHandle<()>, UnboundedReceiver<ServerMessage>) {
     let (tx, rx) = mpsc::unbounded_channel();
-    let stdin_read_task = tokio::spawn(async move {
+    let stdin_read_task = tokio::task::spawn_blocking(move || {
         let input = io::BufReader::new(input);
         for msg in filein_to_smsg(input) {
-            tx.send(msg.unwrap()).unwrap();
-            if stop.is_cancelled() {
+            if tx.send(msg.expect("Failed to parse irc message")).is_err() || stop.is_cancelled() {
                 break;
             }
         }
