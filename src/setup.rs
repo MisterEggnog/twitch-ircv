@@ -456,16 +456,16 @@ mod test {
         let test_task = tokio::spawn(async move {
             cancel.cancel();
             while let Some(_) = out.recv().await {}
-            let _ = reader_task.await.expect("task panicked");
+            let _ = reader_task.await.expect("filein task panicked");
         });
 
         let timeout = sleep(Duration::from_mins(1));
         tokio::select! {
             _ = timeout => {
-                panic!("task timed out")
+                panic!("test timed out")
             }
             res = test_task => {
-                res.unwrap()
+                res.expect("test panicked")
             }
         }
     }
