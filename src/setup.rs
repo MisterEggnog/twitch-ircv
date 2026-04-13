@@ -196,15 +196,27 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
     })
 }
 
-async fn read_receiver_to_closure<F>(
+async fn read_receiver_to_closure<T, F>(
     mut writer: F,
-    mut incoming: UnboundedReceiver<ServerMessage>,
+    terminate: CancellationToken,
+    mut incoming: UnboundedReceiver<T>,
 ) -> io::Result<()>
 where
-    F: AsyncFnMut(ServerMessage) -> io::Result<()>,
+    F: AsyncFnMut(T) -> io::Result<()>,
 {
-    while let Some(message) = incoming.recv().await {
-        writer(message).await?;
+    loop {
+        tokio::select! {
+            message = incoming.recv() => {
+                if let Some(msg) = message {
+                    writer(msg).await?;
+                } else {
+                    break;
+                }
+            }
+            _ = terminate.cancelled() => {
+                break;
+            }
+        }
     }
 
     Ok(())
@@ -233,6 +245,7 @@ pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch
 mod test {
     use super::*;
     use std::sync::{Arc, Mutex};
+    use tokio::time::{sleep, Duration};
 
     #[derive(Clone)]
     struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
@@ -444,7 +457,6 @@ mod test {
     async fn filein_task_cancels() {
         use iter_read::IterRead;
         use std::iter::repeat;
-        use tokio::time::{sleep, Duration};
 
         let irc_msg = format!("{}\n", PRIVMSG_EXAMPLE);
         let looped_input = repeat(irc_msg).map(|s| s.as_bytes().to_owned()).flatten();
@@ -485,5 +497,30 @@ mod test {
 
         drop(tx);
         handle.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn closure_receiver_cancels() {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let cancel = CancellationToken::new();
+
+        let write_to_channel_task =
+            tokio::task::spawn_blocking(move || while tx.send(0).is_ok() {});
+
+        let test_task = read_receiver_to_closure(async |_| Ok(()), cancel.clone(), rx);
+
+        cancel.cancel();
+        let timeout = sleep(Duration::from_mins(1));
+        tokio::select! {
+            _ = timeout => {
+                panic!("test timed out")
+            }
+            res = test_task => {
+                res.expect("test panicked")
+            }
+        }
+        write_to_channel_task
+            .await
+            .expect("writing task shouldn't fail");
     }
 }
