@@ -523,4 +523,36 @@ mod test {
             .await
             .expect("writing task shouldn't fail");
     }
+
+    #[tokio::test]
+    async fn closure_receiver_drains_channel_after_cancel() -> io::Result<()> {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let cancel = CancellationToken::new();
+
+        tx.send(0).expect("channel should be open");
+        tx.send(0).expect("channel should be open");
+        tx.send(0).expect("channel should be open");
+
+        // This way the data is buffered before the cancellation is reached.
+        cancel.cancel();
+
+        let expected_count = Arc::new(Mutex::new(0));
+        let task_count = Arc::clone(&expected_count);
+        read_receiver_to_closure(
+            async |received| {
+                *task_count
+                    .lock()
+                    .expect("This is the only thread reading this") += 1;
+                Ok(())
+            },
+            cancel,
+            rx,
+        )
+        .await?;
+
+        let result = *expected_count.lock().expect("Only 1 thread reads this");
+        assert_eq!(3, result);
+
+        Ok(())
+    }
 }
