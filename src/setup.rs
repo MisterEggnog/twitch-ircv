@@ -197,9 +197,9 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
 }
 
 async fn read_receiver_to_closure<T, F>(
-    mut writer: F,
     terminate: CancellationToken,
     mut incoming: UnboundedReceiver<T>,
+    mut writer: F,
 ) -> io::Result<()>
 where
     F: AsyncFnMut(T) -> io::Result<()>,
@@ -507,7 +507,7 @@ mod test {
         let write_to_channel_task =
             tokio::task::spawn_blocking(move || while tx.send(0).is_ok() {});
 
-        let test_task = read_receiver_to_closure(async |_| Ok(()), cancel.clone(), rx);
+        let test_task = read_receiver_to_closure(cancel.clone(), rx, async |_| Ok(()));
 
         cancel.cancel();
         let timeout = sleep(Duration::from_mins(1));
@@ -538,16 +538,12 @@ mod test {
 
         let expected_count = Arc::new(Mutex::new(0));
         let task_count = Arc::clone(&expected_count);
-        read_receiver_to_closure(
-            async |_| {
-                *task_count
-                    .lock()
-                    .expect("This is the only thread reading this") += 1;
-                Ok(())
-            },
-            cancel,
-            rx,
-        )
+        read_receiver_to_closure(cancel, rx, async |_| {
+            *task_count
+                .lock()
+                .expect("This is the only thread reading this") += 1;
+            Ok(())
+        })
         .await?;
 
         let result = *expected_count.lock().expect("Only 1 thread reads this");
