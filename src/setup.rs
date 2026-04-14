@@ -539,7 +539,7 @@ mod test {
         let expected_count = Arc::new(Mutex::new(0));
         let task_count = Arc::clone(&expected_count);
         read_receiver_to_closure(
-            async |received| {
+            async |_| {
                 *task_count
                     .lock()
                     .expect("This is the only thread reading this") += 1;
