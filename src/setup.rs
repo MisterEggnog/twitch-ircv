@@ -214,6 +214,7 @@ where
                 }
             }
             _ = terminate.cancelled() => {
+                close_and_drain_receiver(incoming, writer).await?;
                 break;
             }
         }
@@ -229,7 +230,11 @@ async fn close_and_drain_receiver<T, F>(
 where
     F: AsyncFnMut(T) -> io::Result<()>,
 {
-    todo!()
+    incoming.close();
+    while let Some(msg) = incoming.recv().await {
+        writer(msg).await?;
+    }
+    Ok(())
 }
 
 /// This was created with a lot of trial & error, mainly the tags
@@ -575,6 +580,7 @@ mod test {
             })
             .await
         });
+        yield_now().await;
 
         assert!(tx.is_closed());
         receiver_spinner.abort();
