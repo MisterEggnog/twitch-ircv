@@ -5,11 +5,11 @@ use std::io::prelude::*;
 use twitch_ircv::args::Args;
 use twitch_ircv::setup::init;
 
-struct PanicsBrokenPipe;
+struct WriteIoError(io::ErrorKind);
 
-impl Write for PanicsBrokenPipe {
+impl Write for WriteIoError {
     fn write(&mut self, _: &[u8]) -> io::Result<usize> {
-        Err(From::from(io::ErrorKind::BrokenPipe))
+        Err(From::from(self.0))
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -27,5 +27,5 @@ async fn cleanly_exits_with_broken_pipe() -> io::Result<()> {
     };
 
     // We do not need to handle this result as it will bubble up
-    init(args, fake_stdin, PanicsBrokenPipe).await
+    init(args, fake_stdin, WriteIoError(io::ErrorKind::BrokenPipe)).await
 }
