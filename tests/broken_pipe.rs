@@ -1,21 +1,9 @@
 use std::fs::File;
 use std::io;
-use std::io::prelude::*;
 
 use twitch_ircv::args::Args;
 use twitch_ircv::setup::init;
-
-struct WriteIoError(io::ErrorKind);
-
-impl Write for WriteIoError {
-    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
-        Err(From::from(self.0))
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
+use twitch_ircv::setup::WriteIoError;
 
 #[tokio::test]
 #[allow(unused_must_use)]

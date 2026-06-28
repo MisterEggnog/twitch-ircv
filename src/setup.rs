@@ -256,6 +256,19 @@ pub fn make_privmsg_example() -> twitch_irc::message::PrivmsgMessage {
 #[allow(dead_code)]
 pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
 
+#[allow(unused)]
+pub struct WriteIoError(pub io::ErrorKind);
+
+impl Write for WriteIoError {
+    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+        Err(From::from(self.0))
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
