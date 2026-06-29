@@ -78,21 +78,33 @@ where
         let file = open_log_file(&args).unwrap();
         let mut file = io::BufWriter::new(file);
 
-        let (handle, rx1, mut rx2) = receiver_splitter(incoming_messages);
-        let stdout_task = setup_fancy_output(rx1, stdout);
-        let log_task = tokio::spawn(async move {
-            while let Some(message) = rx2.recv().await {
-                log_v0(message, &mut file).await;
-            }
-        });
-        let (task1, task2, task3) = tokio::join!(handle, log_task, stdout_task);
-        task1.unwrap();
-        task2.unwrap();
-        task3.unwrap()
+        write_with_log_writer(incoming_messages, stdout, file).await
     } else {
         let join_handle = setup_output(incoming_messages, &args, stdout);
         join_handle.await.unwrap()
     }
+}
+
+async fn write_with_log_writer<W1, W2>(
+    incoming_messages: UnboundedReceiver<ServerMessage>,
+    stdout: W1,
+    mut log: W2,
+) -> io::Result<()>
+where
+    W1: Write + Send + 'static,
+    W2: Write + Send + 'static,
+{
+    let (handle, rx1, mut rx2) = receiver_splitter(incoming_messages);
+    let stdout_task = setup_fancy_output(rx1, stdout);
+    let log_task = tokio::spawn(async move {
+        while let Some(message) = rx2.recv().await {
+            log_v0(message, &mut log).await;
+        }
+    });
+    let (task1, task2, task3) = tokio::join!(handle, log_task, stdout_task);
+    task1.unwrap();
+    task2.unwrap();
+    task3.unwrap()
 }
 
 fn open_log_file(args: &Args) -> io::Result<File> {
@@ -395,6 +407,16 @@ mod test {
         assert_eq!("I am full of spaghetti.\n", file_contents);
 
         Ok(())
+    }
+
+    #[tokio::test]
+    async fn write_to_log_cleanly_handles_errors() {
+        let stdout = io::empty();
+        let log = WriteIoError(io::ErrorKind::StorageFull);
+        let result = write_with_log_writer(todo!(), stdout, log).await;
+
+        let error = result.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::StorageFull);
     }
 
     #[tokio::test]
