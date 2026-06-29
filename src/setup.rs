@@ -98,7 +98,7 @@ where
     let stdout_task = setup_fancy_output(rx1, stdout);
     let log_task = tokio::spawn(async move {
         while let Some(message) = rx2.recv().await {
-            log_v0(message, &mut log).await;
+            log_v0(message, &mut log).await.unwrap();
         }
     });
     let (task1, task2, task3) = tokio::join!(handle, log_task, stdout_task);
@@ -410,13 +410,31 @@ mod test {
     }
 
     #[tokio::test]
-    async fn write_to_log_cleanly_handles_errors() {
+    async fn log_writer_cleanly_handles_errors() {
+        use tokio::sync::mpsc::unbounded_channel;
+        let (tx, messages) = unbounded_channel();
+
+        // For some reason if this is not a different thread this test will run
+        // indefinitely.
+        let messenger_task = tokio::task::spawn_blocking(move || {
+            use twitch_irc::message::IRCMessage;
+            let irc_message = IRCMessage::parse(PRIVMSG_EXAMPLE).expect("custom built irc msg");
+            let irc_message = ServerMessage::try_from(irc_message).expect("This is a privmsg");
+            for _ in 0..10 {
+                tx.send(irc_message.clone()).expect("This is unbounded");
+            }
+        });
+
         let stdout = io::empty();
         let log = WriteIoError(io::ErrorKind::StorageFull);
-        let result = write_with_log_writer(todo!(), stdout, log).await;
+        let result = write_with_log_writer(messages, stdout, log).await;
 
-        let error = result.unwrap_err();
+        let error = result.expect_err("writer should fail with StorageFull");
         assert_eq!(error.kind(), io::ErrorKind::StorageFull);
+
+        messenger_task
+            .await
+            .expect("this task should produce messages until there is no one left to here them.");
     }
 
     #[tokio::test]
