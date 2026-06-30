@@ -76,7 +76,7 @@ where
 {
     if args.log_file.is_some() {
         let file = open_log_file(&args).unwrap();
-        let mut file = io::BufWriter::new(file);
+        let file = io::BufWriter::new(file);
 
         write_with_log_writer(incoming_messages, stdout, file).await
     } else {
