@@ -98,12 +98,13 @@ where
     let stdout_task = setup_fancy_output(rx1, stdout);
     let log_task = tokio::spawn(async move {
         while let Some(message) = rx2.recv().await {
-            log_v0(message, &mut log).await.unwrap();
+            log_v0(message, &mut log).await?;
         }
+        io::Result::Ok(())
     });
     let (task1, task2, task3) = tokio::join!(handle, log_task, stdout_task);
     task1.unwrap();
-    task2.unwrap();
+    task2.unwrap()?;
     task3.unwrap()
 }
 
