@@ -2,7 +2,6 @@ use chrono::prelude::*;
 use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
-use std::ops::AsyncFnMut;
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
