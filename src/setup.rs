@@ -209,33 +209,6 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
     })
 }
 
-async fn read_receiver_to_closure<T, F>(
-    terminate: CancellationToken,
-    mut incoming: UnboundedReceiver<T>,
-    mut writer: F,
-) -> io::Result<()>
-where
-    F: AsyncFnMut(T) -> io::Result<()>,
-{
-    loop {
-        tokio::select! {
-            message = incoming.recv() => {
-                if let Some(msg) = message {
-                    writer(msg).await?;
-                } else {
-                    break;
-                }
-            }
-            _ = terminate.cancelled() => {
-                close_and_drain_receiver(incoming, writer).await?;
-                break;
-            }
-        }
-    }
-
-    Ok(())
-}
-
 async fn close_and_drain_receiver<T, F>(
     mut incoming: UnboundedReceiver<T>,
     mut writer: F,
@@ -566,59 +539,6 @@ mod test {
 
         drop(tx);
         handle.await.unwrap();
-    }
-
-    #[tokio::test]
-    async fn closure_receiver_cancels() {
-        let (tx, rx) = mpsc::unbounded_channel();
-        let cancel = CancellationToken::new();
-
-        let write_to_channel_task =
-            tokio::task::spawn_blocking(move || while tx.send(0).is_ok() {});
-
-        let test_task = read_receiver_to_closure(cancel.clone(), rx, async |_| Ok(()));
-
-        cancel.cancel();
-        let timeout = sleep(Duration::from_mins(1));
-        tokio::select! {
-            _ = timeout => {
-                panic!("test timed out")
-            }
-            res = test_task => {
-                res.expect("test panicked")
-            }
-        }
-        write_to_channel_task
-            .await
-            .expect("writing task shouldn't fail");
-    }
-
-    #[tokio::test]
-    async fn closure_receiver_drains_channel_after_cancel() -> io::Result<()> {
-        let (tx, rx) = mpsc::unbounded_channel();
-        let cancel = CancellationToken::new();
-
-        tx.send(0).expect("channel should be open");
-        tx.send(0).expect("channel should be open");
-        tx.send(0).expect("channel should be open");
-
-        // This way the data is buffered before the cancellation is reached.
-        cancel.cancel();
-
-        let expected_count = Arc::new(Mutex::new(0));
-        let task_count = Arc::clone(&expected_count);
-        read_receiver_to_closure(cancel, rx, async |_| {
-            *task_count
-                .lock()
-                .expect("This is the only thread reading this") += 1;
-            Ok(())
-        })
-        .await?;
-
-        let result = *expected_count.lock().expect("Only 1 thread reads this");
-        assert_eq!(3, result);
-
-        Ok(())
     }
 
     #[tokio::test]
