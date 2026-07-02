@@ -209,20 +209,6 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
     })
 }
 
-async fn close_and_drain_receiver<T, F>(
-    mut incoming: UnboundedReceiver<T>,
-    mut writer: F,
-) -> io::Result<()>
-where
-    F: AsyncFnMut(T) -> io::Result<()>,
-{
-    incoming.close();
-    while let Some(msg) = incoming.recv().await {
-        writer(msg).await?;
-    }
-    Ok(())
-}
-
 /// This was created with a lot of trial & error, mainly the tags
 #[allow(dead_code)]
 pub const PRIVMSG_EXAMPLE: &str = "@room-id=910;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
@@ -539,25 +525,5 @@ mod test {
 
         drop(tx);
         handle.await.unwrap();
-    }
-
-    #[tokio::test]
-    async fn close_and_drain_closes_receiver() {
-        use tokio::task::yield_now;
-        let (tx, rx) = mpsc::unbounded_channel();
-
-        tx.send(0).expect("rx should not be closed");
-
-        let receiver_spinner = tokio::spawn(async {
-            close_and_drain_receiver(rx, async |_| loop {
-                yield_now().await
-            })
-            .await
-        });
-        yield_now().await;
-
-        assert!(tx.is_closed());
-        receiver_spinner.abort();
-        receiver_spinner.await.expect_err("We aborted this");
     }
 }
