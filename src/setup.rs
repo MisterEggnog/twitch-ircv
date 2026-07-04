@@ -39,9 +39,7 @@ where
     R: Read + Send + 'static,
 {
     if args.from_stdin {
-        let stop_reading = CancellationToken::new();
-
-        let (handle, recv) = filein_channel_task_create(stdin, stop_reading);
+        let (handle, recv) = filein_channel_task_create(stdin);
         let (handle_res, stdout_result) = tokio::join!(handle, init_with_input(args, recv, stdout));
         handle_res.unwrap();
         stdout_result
@@ -128,13 +126,12 @@ fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = io::Result<Serve
 
 fn filein_channel_task_create<R: Read + Send + 'static>(
     input: R,
-    stop: CancellationToken,
 ) -> (JoinHandle<()>, UnboundedReceiver<ServerMessage>) {
     let (tx, rx) = mpsc::unbounded_channel();
     let stdin_read_task = tokio::task::spawn_blocking(move || {
         let input = io::BufReader::new(input);
         for msg in filein_to_smsg(input) {
-            if tx.send(msg.expect("Failed to parse irc message")).is_err() || stop.is_cancelled() {
+            if tx.send(msg.expect("Failed to parse irc message")).is_err() {
                 break;
             }
         }
@@ -468,8 +465,7 @@ mod test {
         writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
         let input = io::Cursor::new(input);
 
-        let dummy_cancel = CancellationToken::new();
-        let (handle, mut incoming) = filein_channel_task_create(input, dummy_cancel);
+        let (handle, mut incoming) = filein_channel_task_create(input);
         let first = incoming.recv().await.unwrap();
         assert_eq!(first.source(), &irc_msg);
 
@@ -478,35 +474,6 @@ mod test {
         assert!(incoming.recv().await.is_none());
 
         handle.await.unwrap();
-    }
-
-    #[tokio::test]
-    async fn filein_task_cancels() {
-        use iter_read::IterRead;
-        use std::iter::repeat;
-
-        let irc_msg = format!("{}\n", PRIVMSG_EXAMPLE);
-        let looped_input = repeat(irc_msg).map(|s| s.as_bytes().to_owned()).flatten();
-
-        let reader = IterRead::new(looped_input);
-        let cancel = CancellationToken::new();
-        let (reader_task, mut out) = filein_channel_task_create(reader, cancel.clone());
-
-        let test_task = tokio::spawn(async move {
-            cancel.cancel();
-            while let Some(_) = out.recv().await {}
-            let _ = reader_task.await.expect("filein task panicked");
-        });
-
-        let timeout = sleep(Duration::from_mins(1));
-        tokio::select! {
-            _ = timeout => {
-                panic!("test timed out")
-            }
-            res = test_task => {
-                res.expect("test panicked")
-            }
-        }
     }
 
     #[tokio::test]
