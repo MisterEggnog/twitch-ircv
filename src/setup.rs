@@ -229,7 +229,6 @@ impl Write for WriteIoError {
 mod test {
     use super::*;
     use std::sync::{Arc, Mutex};
-    use tokio::time::{sleep, Duration};
 
     #[derive(Clone)]
     struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);

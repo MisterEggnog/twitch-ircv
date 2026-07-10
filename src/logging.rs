@@ -31,7 +31,7 @@ async fn log_v0_privmsg() -> io::Result<()> {
     let fake_privmsg = ServerMessage::Privmsg(fake_privmsg);
 
     let mut output = vec![];
-    let _ = log_v0(fake_privmsg, &mut output).await?;
+    log_v0(fake_privmsg, &mut output).await?;
     let output = String::from_utf8(output).unwrap();
 
     assert_eq!(output, expected);
