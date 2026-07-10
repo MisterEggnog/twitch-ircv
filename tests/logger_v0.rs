@@ -31,7 +31,7 @@ async fn test_no_ping() -> Result<(), Box<dyn Error>> {
     for line in irc_lines {
         let msg = IRCMessage::parse(&line)?;
         let msg = ServerMessage::try_from(msg)?;
-        log_v0(msg, &mut buff).await;
+        log_v0(msg, &mut buff).await?;
     }
 
     buff.set_position(0);

@@ -44,7 +44,9 @@ where
         stdout_result
     } else {
         let (incoming_messages, client) = build_irc_client();
+
         client.join(args.channel_name.clone()).unwrap();
+
         init_with_input(args, incoming_messages, stdout).await
     }
 }
@@ -59,23 +61,36 @@ where
 {
     if args.log_file.is_some() {
         let file = open_log_file(&args).unwrap();
-        let mut file = io::BufWriter::new(file);
+        let file = io::BufWriter::new(file);
 
-        let (handle, rx1, mut rx2) = receiver_splitter(incoming_messages);
-        let stdout_task = setup_fancy_output(rx1, stdout);
-        let log_task = tokio::spawn(async move {
-            while let Some(message) = rx2.recv().await {
-                log_v0(message, &mut file).await;
-            }
-        });
-        let (task1, task2, task3) = tokio::join!(handle, log_task, stdout_task);
-        task1.unwrap();
-        task2.unwrap();
-        task3.unwrap()
+        write_with_log_writer(incoming_messages, stdout, file).await
     } else {
         let join_handle = setup_output(incoming_messages, &args, stdout);
         join_handle.await.unwrap()
     }
+}
+
+async fn write_with_log_writer<W1, W2>(
+    incoming_messages: UnboundedReceiver<ServerMessage>,
+    stdout: W1,
+    mut log: W2,
+) -> io::Result<()>
+where
+    W1: Write + Send + 'static,
+    W2: Write + Send + 'static,
+{
+    let (handle, rx1, mut rx2) = receiver_splitter(incoming_messages);
+    let stdout_task = setup_fancy_output(rx1, stdout);
+    let log_task = tokio::spawn(async move {
+        while let Some(message) = rx2.recv().await {
+            log_v0(message, &mut log).await?;
+        }
+        io::Result::Ok(())
+    });
+    let (task1, task2, task3) = tokio::join!(handle, log_task, stdout_task);
+    task1.unwrap();
+    task2.unwrap()?;
+    task3.unwrap()
 }
 
 fn open_log_file(args: &Args) -> io::Result<File> {
@@ -101,10 +116,12 @@ fn filein_channel_task_create<R: Read + Send + 'static>(
     input: R,
 ) -> (JoinHandle<()>, UnboundedReceiver<ServerMessage>) {
     let (tx, rx) = mpsc::unbounded_channel();
-    let stdin_read_task = tokio::spawn(async move {
+    let stdin_read_task = tokio::task::spawn_blocking(move || {
         let input = io::BufReader::new(input);
         for msg in filein_to_smsg(input) {
-            tx.send(msg.unwrap()).unwrap();
+            if tx.send(msg.expect("Failed to parse irc message")).is_err() {
+                break;
+            }
         }
     });
     (stdin_read_task, rx)
@@ -194,6 +211,19 @@ pub fn make_privmsg_example() -> twitch_irc::message::PrivmsgMessage {
 
 #[allow(dead_code)]
 pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
+
+#[allow(unused)]
+pub struct WriteIoError(pub io::ErrorKind);
+
+impl Write for WriteIoError {
+    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+        Err(From::from(self.0))
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -320,6 +350,34 @@ mod test {
         assert_eq!("I am full of spaghetti.\n", file_contents);
 
         Ok(())
+    }
+
+    #[tokio::test]
+    async fn log_writer_cleanly_handles_errors() {
+        use tokio::sync::mpsc::unbounded_channel;
+        let (tx, messages) = unbounded_channel();
+
+        // For some reason if this is not a different thread this test will run
+        // indefinitely.
+        let messenger_task = tokio::task::spawn_blocking(move || {
+            use twitch_irc::message::IRCMessage;
+            let irc_message = IRCMessage::parse(PRIVMSG_EXAMPLE).expect("custom built irc msg");
+            let irc_message = ServerMessage::try_from(irc_message).expect("This is a privmsg");
+            for _ in 0..10 {
+                tx.send(irc_message.clone()).expect("This is unbounded");
+            }
+        });
+
+        let stdout = io::empty();
+        let log = WriteIoError(io::ErrorKind::StorageFull);
+        let result = write_with_log_writer(messages, stdout, log).await;
+
+        let error = result.expect_err("writer should fail with StorageFull");
+        assert_eq!(error.kind(), io::ErrorKind::StorageFull);
+
+        messenger_task
+            .await
+            .expect("this task should produce messages until there is no one left to here them.");
     }
 
     #[tokio::test]
