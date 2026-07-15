@@ -127,6 +127,18 @@ fn filein_channel_task_create<R: Read + Send + 'static>(
     (stdin_read_task, rx)
 }
 
+async fn close_drain_receiver<T>(tx: mpsc::UnboundedSender<T>, mut rx: UnboundedReceiver<T>)
+where
+    T: std::marker::Send + 'static,
+{
+    rx.close();
+    while let Some(message) = rx.recv().await {
+        if tx.send(message).is_err() {
+            return;
+        }
+    }
+}
+
 fn receiver_splitter<T>(
     mut incoming: UnboundedReceiver<T>,
 ) -> (JoinHandle<()>, UnboundedReceiver<T>, UnboundedReceiver<T>)
@@ -137,7 +149,15 @@ where
     let (tx2, rx2) = mpsc::unbounded_channel();
     let handle = tokio::spawn(async move {
         while let Some(message) = incoming.recv().await {
-            if tx1.send(message.clone()).is_err() || tx2.send(message).is_err() {
+            let res1 = tx1.send(message.clone());
+            let res2 = tx2.send(message);
+            if res1.is_err() && res2.is_err() {
+                return;
+            } else if res1.is_err() && res2.is_ok() {
+                close_drain_receiver(tx2, incoming).await;
+                return;
+            } else if res1.is_ok() && res2.is_err() {
+                close_drain_receiver(tx1, incoming).await;
                 return;
             }
         }
@@ -482,16 +502,14 @@ mod test {
 
     async fn receiver_splitter_drains_side(
         tx: mpsc::UnboundedSender<i32>,
-        mut rx: mpsc::UnboundedReceiver<i32>,
-        dies: mpsc::UnboundedReceiver<i32>,
+        mut rx: UnboundedReceiver<i32>,
+        dies: UnboundedReceiver<i32>,
     ) {
         drop(dies);
         tx.send(0).expect("Should be able to send");
         tx.send(1).expect("Should be able to send");
         assert_eq!(rx.recv().await, Some(0));
         assert_eq!(rx.recv().await, Some(1));
-        // TODO This should be removed when task closes tx
-        drop(tx);
         assert_eq!(rx.recv().await, None);
     }
 
