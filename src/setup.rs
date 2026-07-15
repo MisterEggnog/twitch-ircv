@@ -479,4 +479,32 @@ mod test {
         drop(tx);
         handle.await.unwrap();
     }
+
+    async fn receiver_splitter_drains_side(
+        tx: mpsc::UnboundedSender<i32>,
+        mut rx: mpsc::UnboundedReceiver<i32>,
+        dies: mpsc::UnboundedReceiver<i32>,
+    ) {
+        drop(dies);
+        tx.send(0).expect("Should be able to send");
+        tx.send(1).expect("Should be able to send");
+        assert_eq!(rx.recv().await, Some(0));
+        assert_eq!(rx.recv().await, Some(1));
+        // TODO This should be removed when task closes tx
+        drop(tx);
+        assert_eq!(rx.recv().await, None);
+    }
+
+    #[tokio::test]
+    async fn receiver_splitter_drains_to_remaining_channel() {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let (handle, out1, out2) = receiver_splitter(rx);
+        receiver_splitter_drains_side(tx, out1, out2).await;
+        handle.await.expect("task failed");
+
+        let (tx, rx) = mpsc::unbounded_channel();
+        let (handle, out1, out2) = receiver_splitter(rx);
+        receiver_splitter_drains_side(tx, out2, out1).await;
+        handle.await.expect("task failed");
+    }
 }
