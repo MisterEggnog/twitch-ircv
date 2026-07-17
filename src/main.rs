@@ -4,7 +4,7 @@ mod logging;
 mod pretty_print;
 mod setup;
 #[cfg(test)]
-mod test;
+mod test_tools;
 
 use clap::Parser;
 use std::io;
