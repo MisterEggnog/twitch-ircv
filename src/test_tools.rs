@@ -42,3 +42,16 @@ impl Write for WriteLockBuf {
         self.0.lock().unwrap().flush()
     }
 }
+
+#[allow(unused)]
+pub struct WriteIoError(pub io::ErrorKind);
+
+impl Write for WriteIoError {
+    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+        Err(From::from(self.0))
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}

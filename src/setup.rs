@@ -213,25 +213,13 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
     })
 }
 
-#[allow(unused)]
-pub struct WriteIoError(pub io::ErrorKind);
-
-impl Write for WriteIoError {
-    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
-        Err(From::from(self.0))
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::test_tools::PONG_MSG_EXAMPLE;
     use crate::test_tools::PRIVMSG_EXAMPLE;
     use crate::test_tools::WriteLockBuf;
+    use crate::test_tools::*;
 
     #[tokio::test]
     async fn write_raw_irc_matches_input() {
