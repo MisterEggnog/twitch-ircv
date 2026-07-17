@@ -4,9 +4,9 @@ use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio::task::JoinHandle;
+use twitch_irc::TwitchIRCClient;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::ServerMessage;
-use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
 use crate::args::Args;

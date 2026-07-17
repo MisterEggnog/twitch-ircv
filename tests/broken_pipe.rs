@@ -2,8 +2,8 @@ use std::fs::File;
 use std::io;
 
 use twitch_ircv::args::Args;
-use twitch_ircv::setup::init;
 use twitch_ircv::setup::WriteIoError;
+use twitch_ircv::setup::init;
 
 #[tokio::test]
 #[allow(unused_must_use)]

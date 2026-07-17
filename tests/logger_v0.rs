@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::Cursor;
+use std::io::prelude::*;
 
 use twitch_irc::message::{IRCMessage, ServerMessage};
 
