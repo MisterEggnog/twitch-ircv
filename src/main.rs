@@ -3,6 +3,8 @@ mod badges;
 mod logging;
 mod pretty_print;
 mod setup;
+#[cfg(test)]
+mod test;
 
 use clap::Parser;
 use std::io;

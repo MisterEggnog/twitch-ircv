@@ -4,3 +4,4 @@ pub mod badges;
 pub mod logging;
 pub mod pretty_print;
 pub mod setup;
+pub mod test;

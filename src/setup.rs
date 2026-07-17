@@ -248,26 +248,7 @@ impl Write for WriteIoError {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::sync::{Arc, Mutex};
-
-    #[derive(Clone)]
-    struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
-    impl WriteLockBuf {
-        fn new() -> Self {
-            WriteLockBuf(Arc::new(Mutex::new(vec![])))
-        }
-        fn get_data(&self) -> String {
-            String::from(std::str::from_utf8(&self.0.lock().unwrap()).unwrap())
-        }
-    }
-    impl Write for WriteLockBuf {
-        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-            self.0.lock().unwrap().write(buf)
-        }
-        fn flush(&mut self) -> io::Result<()> {
-            self.0.lock().unwrap().flush()
-        }
-    }
+    use crate::test::WriteLockBuf;
 
     #[tokio::test]
     async fn write_raw_irc_matches_input() {
