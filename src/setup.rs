@@ -213,25 +213,6 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
     })
 }
 
-/// This was created with a lot of trial & error, mainly the tags
-#[allow(dead_code)]
-pub const PRIVMSG_EXAMPLE: &str = "@room-id=910;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
-
-/// Generate PrivmsgMessage from PRIVMSG_EXAMPLE
-///
-/// This is for testing purposes
-#[allow(dead_code)]
-pub fn make_privmsg_example() -> twitch_irc::message::PrivmsgMessage {
-    use twitch_irc::message::IRCMessage;
-    IRCMessage::parse(PRIVMSG_EXAMPLE)
-        .expect("Preset irc message")
-        .try_into()
-        .expect("This is custom designed to parse")
-}
-
-#[allow(dead_code)]
-pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
-
 #[allow(unused)]
 pub struct WriteIoError(pub io::ErrorKind);
 
@@ -248,6 +229,8 @@ impl Write for WriteIoError {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::test::PONG_MSG_EXAMPLE;
+    use crate::test::PRIVMSG_EXAMPLE;
     use crate::test::WriteLockBuf;
 
     #[tokio::test]
