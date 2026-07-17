@@ -1,13 +1,12 @@
+//! data structues for use in testing
 use std::io;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
 
-/// This was created with a lot of trial & error, mainly the tags
+// This was created with a lot of trial & error, mainly the tags
 pub const PRIVMSG_EXAMPLE: &str = "@room-id=910;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
 
 /// Generate PrivmsgMessage from PRIVMSG_EXAMPLE
-///
-/// This is for testing purposes
 pub fn make_privmsg_example() -> twitch_irc::message::PrivmsgMessage {
     use twitch_irc::message::IRCMessage;
     IRCMessage::parse(PRIVMSG_EXAMPLE)
