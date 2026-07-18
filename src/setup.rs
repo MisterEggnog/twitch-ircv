@@ -233,7 +233,7 @@ mod test {
             ..Default::default()
         };
         let privmsg_example = format!("{}\n", example.as_raw_irc());
-        let fake_stdout = WriteLockBuf::new();
+        let fake_stdout = WriteLockBuf::default();
 
         let (input, output) = unbounded_channel();
         input.send(example).unwrap();
@@ -374,7 +374,7 @@ mod test {
         writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
         writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
 
-        let output = WriteLockBuf::new();
+        let output = WriteLockBuf::default();
 
         let test_input = io::Cursor::new(test_input);
         let _ = init(test_args, test_input, output.clone()).await;

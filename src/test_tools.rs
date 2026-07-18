@@ -17,13 +17,9 @@ pub fn make_privmsg_example() -> twitch_irc::message::PrivmsgMessage {
 
 pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
 impl WriteLockBuf {
-    pub fn new() -> Self {
-        WriteLockBuf(Arc::new(Mutex::new(vec![])))
-    }
-
     pub fn get_data(&self) -> String {
         String::from(std::str::from_utf8(&self.0.lock().unwrap()).unwrap())
     }
