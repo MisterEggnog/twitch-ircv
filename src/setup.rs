@@ -213,61 +213,13 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
     })
 }
 
-/// This was created with a lot of trial & error, mainly the tags
-#[allow(dead_code)]
-pub const PRIVMSG_EXAMPLE: &str = "@room-id=910;user-id=8;display-name=7;badge-info=;badges=;color=;emotes=;tmi-sent-ts=666;id=7 :bread!bread!bread@bread.tmi.twitch.tv PRIVMSG #bread :bread bread bread";
-
-/// Generate PrivmsgMessage from PRIVMSG_EXAMPLE
-///
-/// This is for testing purposes
-#[allow(dead_code)]
-pub fn make_privmsg_example() -> twitch_irc::message::PrivmsgMessage {
-    use twitch_irc::message::IRCMessage;
-    IRCMessage::parse(PRIVMSG_EXAMPLE)
-        .expect("Preset irc message")
-        .try_into()
-        .expect("This is custom designed to parse")
-}
-
-#[allow(dead_code)]
-pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch.tv";
-
-#[allow(unused)]
-pub struct WriteIoError(pub io::ErrorKind);
-
-impl Write for WriteIoError {
-    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
-        Err(From::from(self.0))
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::sync::{Arc, Mutex};
-
-    #[derive(Clone)]
-    struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
-    impl WriteLockBuf {
-        fn new() -> Self {
-            WriteLockBuf(Arc::new(Mutex::new(vec![])))
-        }
-        fn get_data(&self) -> String {
-            String::from(std::str::from_utf8(&self.0.lock().unwrap()).unwrap())
-        }
-    }
-    impl Write for WriteLockBuf {
-        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-            self.0.lock().unwrap().write(buf)
-        }
-        fn flush(&mut self) -> io::Result<()> {
-            self.0.lock().unwrap().flush()
-        }
-    }
+    use crate::test_tools::PONG_MSG_EXAMPLE;
+    use crate::test_tools::PRIVMSG_EXAMPLE;
+    use crate::test_tools::WriteLockBuf;
+    use crate::test_tools::*;
 
     #[tokio::test]
     async fn write_raw_irc_matches_input() {
@@ -281,7 +233,7 @@ mod test {
             ..Default::default()
         };
         let privmsg_example = format!("{}\n", example.as_raw_irc());
-        let fake_stdout = WriteLockBuf::new();
+        let fake_stdout = WriteLockBuf::default();
 
         let (input, output) = unbounded_channel();
         input.send(example).unwrap();
@@ -422,7 +374,7 @@ mod test {
         writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
         writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
 
-        let output = WriteLockBuf::new();
+        let output = WriteLockBuf::default();
 
         let test_input = io::Cursor::new(test_input);
         let _ = init(test_args, test_input, output.clone()).await;

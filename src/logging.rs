@@ -26,7 +26,7 @@ async fn log_v0_privmsg() -> io::Result<()> {
     let source = irc!["PRIVMSG", "#Orflex", "This is a real irc message, totes"];
     let expected = format!("{}\n", source.as_raw_irc());
 
-    let example = crate::setup::make_privmsg_example();
+    let example = crate::test_tools::make_privmsg_example();
     let fake_privmsg = PrivmsgMessage { source, ..example };
     let fake_privmsg = ServerMessage::Privmsg(fake_privmsg);
 
