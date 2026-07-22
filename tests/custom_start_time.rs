@@ -9,7 +9,7 @@ use std::process::Command;
 #[test]
 fn custom_datetime_env_variable() -> io::Result<()> {
     let input_file = "tests/irc_data_no_ping";
-    let input = File::open(&input_file)?;
+    let input = File::open(input_file)?;
 
     let result = Command::new(env!("CARGO_BIN_EXE_twitch-ircv"))
         .args(["notachannel", "--from-stdin"])

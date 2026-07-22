@@ -168,7 +168,7 @@ fn display_badges() {
         ChannelStatus::Vip,
     ]
     .into_iter()
-    .map(|x| (Some(x), format!("{}", &x)))
+    .map(|x| (Some(x), format!("{}", x)))
     .chain(std::iter::once((None, "".to_string())));
     let partner_badge = [(false, ""), (true, "✅")].into_iter();
     let sub_badge_month = None;
