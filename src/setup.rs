@@ -70,7 +70,7 @@ where
         write_with_log_writer(incoming_messages, stdout, file).await
     } else {
         let join_handle = setup_output(incoming_messages, &args, stdout);
-        join_handle.await.unwrap()
+        join_handle.await.expect("setup output task failed")
     }
 }
 
