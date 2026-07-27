@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use function_name::named;
 use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
@@ -73,6 +74,7 @@ where
     }
 }
 
+#[named]
 async fn write_with_log_writer<W1, W2>(
     incoming_messages: UnboundedReceiver<ServerMessage>,
     stdout: W1,
@@ -91,9 +93,12 @@ where
         io::Result::Ok(())
     });
     let (task1, task2, task3) = tokio::join!(handle, log_task, stdout_task);
-    task1.unwrap();
-    task2.unwrap()?;
-    task3.unwrap()
+    task1.expect(concat!(
+        "Receiver splitter task failed in ",
+        function_name!()
+    ));
+    task2.expect(concat!("log file task failed in ", function_name!()))?;
+    task3.expect(concat!("stdout task failed in ", function_name!()))
 }
 
 fn open_log_file(args: &Args) -> io::Result<File> {
