@@ -3,6 +3,7 @@ use function_name::named;
 use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
+use std::path::Path;
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio::task::JoinHandle;
 use twitch_irc::TwitchIRCClient;
@@ -63,8 +64,8 @@ async fn init_with_input<W>(
 where
     W: Write + Send + 'static,
 {
-    if args.log_file.is_some() {
-        let file = open_log_file(&args)?;
+    if let Some(file_name) = args.log_file {
+        let file = open_log_file(&file_name, args.append)?;
         let file = io::BufWriter::new(file);
 
         write_with_log_writer(incoming_messages, stdout, file).await
@@ -101,12 +102,11 @@ where
     task3.expect(concat!("stdout task failed in ", function_name!()))
 }
 
-fn open_log_file(args: &Args) -> io::Result<File> {
-    let log_file = args.log_file.clone().unwrap();
+fn open_log_file(log_file: &Path, append: bool) -> io::Result<File> {
     OpenOptions::new()
         .create(true)
         .write(true)
-        .append(args.append)
+        .append(append)
         .open(log_file)
 }
 
@@ -263,17 +263,11 @@ mod test {
         use tempfile::NamedTempFile;
         let mut path = NamedTempFile::new().expect("Could not get temp path");
 
-        let log_file = Some(path.as_ref().to_path_buf());
-        let append = true;
-        let test_args = Args {
-            log_file,
-            append,
-            ..Default::default()
-        };
+        let log_file = path.as_ref().to_path_buf();
 
         writeln!(path, "Bagginses")?;
 
-        let mut outfs = open_log_file(&test_args)?;
+        let mut outfs = open_log_file(&log_file, true)?;
         writeln!(outfs, "I am full of spaghetti.")?;
 
         drop(outfs);
@@ -316,13 +310,8 @@ mod test {
         let mut path = NamedTempFile::new().expect("Could not get temp path");
         writeln!(path, "Bagginses")?;
 
-        let log_file = Some(path.as_ref().to_path_buf());
-        let test_args = Args {
-            log_file,
-            append: false,
-            ..Default::default()
-        };
-        let mut outfs = open_log_file(&test_args)?;
+        let log_file = path.as_ref().to_path_buf();
+        let mut outfs = open_log_file(&log_file, false)?;
         writeln!(outfs, "I am full of spaghetti.")?;
         drop(outfs);
 
