@@ -63,7 +63,7 @@ where
     W: Write + Send + 'static,
 {
     if args.log_file.is_some() {
-        let file = open_log_file(&args).unwrap();
+        let file = open_log_file(&args)?;
         let file = io::BufWriter::new(file);
 
         write_with_log_writer(incoming_messages, stdout, file).await
