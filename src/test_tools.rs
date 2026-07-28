@@ -24,19 +24,26 @@ pub const PONG_MSG_EXAMPLE: &str = ":tmi.twitch.tv PONG tmi.twitch.tv tmi.twitch
 
 #[derive(Clone, Default)]
 pub struct WriteLockBuf(Arc<Mutex<Vec<u8>>>);
+
 impl WriteLockBuf {
     pub fn get_data(&self) -> String {
-        String::from(std::str::from_utf8(&self.0.lock().unwrap()).unwrap())
+        String::from(
+            str::from_utf8(&self.0.lock().expect("Panic in other test thread"))
+                .expect("Written data was not valid utf8"),
+        )
     }
 }
 
 impl Write for WriteLockBuf {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0.lock().unwrap().write(buf)
+        self.0
+            .lock()
+            .expect("Panic in other test thread")
+            .write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.0.lock().unwrap().flush()
+        self.0.lock().expect("Panic in other test thread").flush()
     }
 }
 
