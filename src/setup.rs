@@ -235,10 +235,9 @@ mod test {
     #[tokio::test]
     async fn write_raw_irc_matches_input() {
         use tokio::sync::mpsc::unbounded_channel;
-        use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
+        use twitch_irc::message::AsRawIRC;
 
-        let example = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-        let example = ServerMessage::try_from(example).unwrap();
+        let example = make_servermsg_from_example();
         let args = Args {
             print_raw_irc: true,
             ..Default::default()
@@ -361,8 +360,7 @@ mod test {
             ..Default::default()
         };
 
-        let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-        let msg = ServerMessage::try_from(msg).unwrap();
+        let msg = make_servermsg_from_example();
 
         let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
         let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
@@ -392,8 +390,7 @@ mod test {
     #[test]
     fn test_text_to_server_message() {
         use twitch_irc::message::IRCMessage;
-        let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-        let msg = ServerMessage::try_from(msg).unwrap();
+        let msg = make_servermsg_from_example();
 
         let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
         let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
