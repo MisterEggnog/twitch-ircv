@@ -233,7 +233,7 @@ mod test {
     use crate::test_tools::*;
 
     #[tokio::test]
-    async fn write_raw_irc_matches_input() {
+    async fn write_raw_irc_matches_input() -> io::Result<()> {
         use tokio::sync::mpsc::unbounded_channel;
         use twitch_irc::message::AsRawIRC;
 
@@ -246,16 +246,20 @@ mod test {
         let fake_stdout = WriteLockBuf::default();
 
         let (input, output) = unbounded_channel();
-        input.send(example).unwrap();
+        input
+            .send(example)
+            .expect("sender should not be closed yet");
         drop(input);
-        let _ = setup_output(output, &args, fake_stdout.clone())
+        setup_output(output, &args, fake_stdout.clone())
             .await
-            .unwrap();
+            .expect("task should have run to completion")?;
 
         // This program will change the order of the irc message tags when
         // building the `source` message, so I need to do this.
         let output_data = fake_stdout.get_data();
         assert_eq!(privmsg_example, output_data);
+
+        Ok(())
     }
 
     #[test]
