@@ -423,24 +423,32 @@ mod test {
     }
 
     #[tokio::test]
-    async fn create_stdin_task() {
+    async fn create_stdin_task() -> io::Result<()> {
         use twitch_irc::message::IRCMessage;
-        let irc_msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+        let irc_msg = IRCMessage::parse(PRIVMSG_EXAMPLE).expect("example is valid irc message");
 
         let mut input = vec![];
-        writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
-        writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        writeln!(input, "{}", PRIVMSG_EXAMPLE)?;
+        writeln!(input, "{}", PRIVMSG_EXAMPLE)?;
         let input = io::Cursor::new(input);
 
         let (handle, mut incoming) = filein_channel_task_create(input);
-        let first = incoming.recv().await.unwrap();
+        let first = incoming
+            .recv()
+            .await
+            .expect("channel should not be closed yet");
         assert_eq!(first.source(), &irc_msg);
 
-        let second = incoming.recv().await.unwrap();
+        let second = incoming
+            .recv()
+            .await
+            .expect("channel should not be closed yet");
         assert_eq!(second.source(), &irc_msg);
         assert!(incoming.recv().await.is_none());
 
-        handle.await.unwrap();
+        handle.await.expect("task should have run to completion");
+
+        Ok(())
     }
 
     #[tokio::test]
