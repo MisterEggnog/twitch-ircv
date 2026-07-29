@@ -457,15 +457,15 @@ mod test {
         let (handle, mut out1, mut out2) = receiver_splitter(rx);
         let test_msg = "Hewwo, I am a string";
 
-        tx.send(test_msg).unwrap();
-        let res1 = out1.recv().await.unwrap();
-        let res2 = out2.recv().await.unwrap();
+        tx.send(test_msg).expect("channel is not yet closed");
+        let res1 = out1.recv().await.expect("channel is not yet closed");
+        let res2 = out2.recv().await.expect("channel is not yet closed");
 
         assert_eq!(test_msg, res1);
         assert_eq!(test_msg, res2);
 
         drop(tx);
-        handle.await.unwrap();
+        handle.await.expect("task should have run to completion");
     }
 
     async fn receiver_splitter_drains_side(
