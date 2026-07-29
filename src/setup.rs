@@ -357,7 +357,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn read_from_stdin() {
+    async fn read_from_stdin() -> io::Result<()> {
         use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
         let test_args = Args {
             channel_name: String::from("&"),
@@ -367,20 +367,20 @@ mod test {
 
         let msg = make_servermsg_from_example();
 
-        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
-        let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
+        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).expect("message is valid irc");
+        let pong_msg = ServerMessage::try_from(pong_msg).expect("message is valid server message");
 
         let expected_substr = "7: bread bread bread";
 
         let mut test_input = vec![];
-        writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
-        writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
-        writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
+        writeln!(test_input, "{}", pong_msg.as_raw_irc())?;
+        writeln!(test_input, "{}", msg.as_raw_irc())?;
+        writeln!(test_input, "{}", pong_msg.as_raw_irc())?;
 
         let output = WriteLockBuf::default();
 
         let test_input = io::Cursor::new(test_input);
-        let _ = init(test_args, test_input, output.clone()).await;
+        init(test_args, test_input, output.clone()).await?;
 
         let output_data = output.get_data();
 
@@ -390,6 +390,8 @@ mod test {
             output_data,
             expected_substr
         );
+
+        Ok(())
     }
 
     #[test]
