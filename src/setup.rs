@@ -289,7 +289,8 @@ mod test {
     fn arg_str_time_parse_parses_valid_str() {
         let milliseconds = 1761108680812;
         let datetime_str = format!("{}", milliseconds);
-        let datetime = DateTime::from_timestamp_millis(milliseconds).unwrap();
+        let datetime =
+            DateTime::from_timestamp_millis(milliseconds).expect("input is a valid timestamp");
         let result = arg_str_time_parse(Ok(datetime_str)).expect("failed to parse arg str");
         assert_eq!(
             datetime, result,
