@@ -395,27 +395,31 @@ mod test {
     }
 
     #[test]
-    fn test_text_to_server_message() {
+    fn test_text_to_server_message() -> io::Result<()> {
         use twitch_irc::message::IRCMessage;
         let msg = make_servermsg_from_example();
 
-        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
-        let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
+        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).expect("message is valid irc");
+        let pong_msg = ServerMessage::try_from(pong_msg).expect("message is valid server message");
 
         let mut test_input = vec![];
-        writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
-        writeln!(test_input, "{}", PONG_MSG_EXAMPLE).unwrap();
-        writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        writeln!(test_input, "{}", PRIVMSG_EXAMPLE)?;
+        writeln!(test_input, "{}", PONG_MSG_EXAMPLE)?;
+        writeln!(test_input, "{}", PRIVMSG_EXAMPLE)?;
         let test_input = io::Cursor::new(test_input);
 
         // I understand why ServerMessage doesn't impl PartialEq but it makes
         // testing difficult.
         let expected: Vec<_> = [msg.clone(), pong_msg, msg].into();
-        let result: Vec<_> = filein_to_smsg(test_input).map(|s| s.unwrap()).collect();
+        let result: Vec<_> = filein_to_smsg(test_input)
+            .map(|s| s.expect("input is valid irc"))
+            .collect();
         assert_eq!(expected.len(), result.len());
         for (res, exp) in expected.into_iter().zip(result) {
             assert_eq!(res.source(), exp.source());
         }
+
+        Ok(())
     }
 
     #[tokio::test]
