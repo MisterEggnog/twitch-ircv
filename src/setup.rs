@@ -1,7 +1,9 @@
 use chrono::prelude::*;
+use function_name::named;
 use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
+use std::path::Path;
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio::task::JoinHandle;
 use twitch_irc::TwitchIRCClient;
@@ -40,12 +42,15 @@ where
     if args.from_stdin {
         let (handle, recv) = filein_channel_task_create(stdin);
         let (handle_res, stdout_result) = tokio::join!(handle, init_with_input(args, recv, stdout));
-        handle_res.unwrap();
+        handle_res.expect("filein task should've closed by this point");
         stdout_result
     } else {
         let (incoming_messages, client) = build_irc_client();
 
-        client.join(args.channel_name.clone()).unwrap();
+        client
+            .join(args.channel_name.clone())
+            .expect("Channel name is an invalid format");
+        // TODO More gracefuly handle this
 
         init_with_input(args, incoming_messages, stdout).await
     }
@@ -59,17 +64,18 @@ async fn init_with_input<W>(
 where
     W: Write + Send + 'static,
 {
-    if args.log_file.is_some() {
-        let file = open_log_file(&args).unwrap();
+    if let Some(file_name) = args.log_file {
+        let file = open_log_file(&file_name, args.append)?;
         let file = io::BufWriter::new(file);
 
         write_with_log_writer(incoming_messages, stdout, file).await
     } else {
         let join_handle = setup_output(incoming_messages, &args, stdout);
-        join_handle.await.unwrap()
+        join_handle.await.expect("setup output task failed")
     }
 }
 
+#[named]
 async fn write_with_log_writer<W1, W2>(
     incoming_messages: UnboundedReceiver<ServerMessage>,
     stdout: W1,
@@ -88,26 +94,31 @@ where
         io::Result::Ok(())
     });
     let (task1, task2, task3) = tokio::join!(handle, log_task, stdout_task);
-    task1.unwrap();
-    task2.unwrap()?;
-    task3.unwrap()
+    task1.expect(concat!(
+        "Receiver splitter task failed in ",
+        function_name!()
+    ));
+    task2.expect(concat!("log file task failed in ", function_name!()))?;
+    task3.expect(concat!("stdout task failed in ", function_name!()))
 }
 
-fn open_log_file(args: &Args) -> io::Result<File> {
-    let log_file = args.log_file.clone().unwrap();
+fn open_log_file(log_file: &Path, append: bool) -> io::Result<File> {
     OpenOptions::new()
         .create(true)
         .write(true)
-        .append(args.append)
+        .append(append)
         .open(log_file)
 }
 
 fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = io::Result<ServerMessage>> {
     use twitch_irc::message::IRCMessage;
+    // TODO flatten to just return an Err instead of expect
     input.lines().map(|l| {
         l.map(|raw| {
-            let msg = IRCMessage::parse(raw.as_ref()).unwrap();
-            ServerMessage::try_from(msg).unwrap()
+            let msg =
+                IRCMessage::parse(raw.as_ref()).expect("Failed to parse input message as IRC");
+            ServerMessage::try_from(msg)
+                .expect("IRC message parsed but was not a valid server message")
         })
     })
 }
@@ -222,12 +233,11 @@ mod test {
     use crate::test_tools::*;
 
     #[tokio::test]
-    async fn write_raw_irc_matches_input() {
+    async fn write_raw_irc_matches_input() -> io::Result<()> {
         use tokio::sync::mpsc::unbounded_channel;
-        use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
+        use twitch_irc::message::AsRawIRC;
 
-        let example = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-        let example = ServerMessage::try_from(example).unwrap();
+        let example = make_servermsg_from_example();
         let args = Args {
             print_raw_irc: true,
             ..Default::default()
@@ -236,16 +246,20 @@ mod test {
         let fake_stdout = WriteLockBuf::default();
 
         let (input, output) = unbounded_channel();
-        input.send(example).unwrap();
+        input
+            .send(example)
+            .expect("sender should not be closed yet");
         drop(input);
-        let _ = setup_output(output, &args, fake_stdout.clone())
+        setup_output(output, &args, fake_stdout.clone())
             .await
-            .unwrap();
+            .expect("task should have run to completion")?;
 
         // This program will change the order of the irc message tags when
         // building the `source` message, so I need to do this.
         let output_data = fake_stdout.get_data();
         assert_eq!(privmsg_example, output_data);
+
+        Ok(())
     }
 
     #[test]
@@ -255,17 +269,11 @@ mod test {
         use tempfile::NamedTempFile;
         let mut path = NamedTempFile::new().expect("Could not get temp path");
 
-        let log_file = Some(path.as_ref().to_path_buf());
-        let append = true;
-        let test_args = Args {
-            log_file,
-            append,
-            ..Default::default()
-        };
+        let log_file = path.as_ref().to_path_buf();
 
         writeln!(path, "Bagginses")?;
 
-        let mut outfs = open_log_file(&test_args)?;
+        let mut outfs = open_log_file(&log_file, true)?;
         writeln!(outfs, "I am full of spaghetti.")?;
 
         drop(outfs);
@@ -281,7 +289,8 @@ mod test {
     fn arg_str_time_parse_parses_valid_str() {
         let milliseconds = 1761108680812;
         let datetime_str = format!("{}", milliseconds);
-        let datetime = DateTime::from_timestamp_millis(milliseconds).unwrap();
+        let datetime =
+            DateTime::from_timestamp_millis(milliseconds).expect("input is a valid timestamp");
         let result = arg_str_time_parse(Ok(datetime_str)).expect("failed to parse arg str");
         assert_eq!(
             datetime, result,
@@ -308,13 +317,8 @@ mod test {
         let mut path = NamedTempFile::new().expect("Could not get temp path");
         writeln!(path, "Bagginses")?;
 
-        let log_file = Some(path.as_ref().to_path_buf());
-        let test_args = Args {
-            log_file,
-            append: false,
-            ..Default::default()
-        };
-        let mut outfs = open_log_file(&test_args)?;
+        let log_file = path.as_ref().to_path_buf();
+        let mut outfs = open_log_file(&log_file, false)?;
         writeln!(outfs, "I am full of spaghetti.")?;
         drop(outfs);
 
@@ -353,7 +357,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn read_from_stdin() {
+    async fn read_from_stdin() -> io::Result<()> {
         use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
         let test_args = Args {
             channel_name: String::from("&"),
@@ -361,23 +365,22 @@ mod test {
             ..Default::default()
         };
 
-        let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-        let msg = ServerMessage::try_from(msg).unwrap();
+        let msg = make_servermsg_from_example();
 
-        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
-        let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
+        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).expect("message is valid irc");
+        let pong_msg = ServerMessage::try_from(pong_msg).expect("message is valid server message");
 
         let expected_substr = "7: bread bread bread";
 
         let mut test_input = vec![];
-        writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
-        writeln!(test_input, "{}", msg.as_raw_irc()).unwrap();
-        writeln!(test_input, "{}", pong_msg.as_raw_irc()).unwrap();
+        writeln!(test_input, "{}", pong_msg.as_raw_irc())?;
+        writeln!(test_input, "{}", msg.as_raw_irc())?;
+        writeln!(test_input, "{}", pong_msg.as_raw_irc())?;
 
         let output = WriteLockBuf::default();
 
         let test_input = io::Cursor::new(test_input);
-        let _ = init(test_args, test_input, output.clone()).await;
+        init(test_args, test_input, output.clone()).await?;
 
         let output_data = output.get_data();
 
@@ -387,52 +390,65 @@ mod test {
             output_data,
             expected_substr
         );
+
+        Ok(())
     }
 
     #[test]
-    fn test_text_to_server_message() {
+    fn test_text_to_server_message() -> io::Result<()> {
         use twitch_irc::message::IRCMessage;
-        let msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
-        let msg = ServerMessage::try_from(msg).unwrap();
+        let msg = make_servermsg_from_example();
 
-        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).unwrap();
-        let pong_msg = ServerMessage::try_from(pong_msg).unwrap();
+        let pong_msg = IRCMessage::parse(PONG_MSG_EXAMPLE).expect("message is valid irc");
+        let pong_msg = ServerMessage::try_from(pong_msg).expect("message is valid server message");
 
         let mut test_input = vec![];
-        writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
-        writeln!(test_input, "{}", PONG_MSG_EXAMPLE).unwrap();
-        writeln!(test_input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        writeln!(test_input, "{}", PRIVMSG_EXAMPLE)?;
+        writeln!(test_input, "{}", PONG_MSG_EXAMPLE)?;
+        writeln!(test_input, "{}", PRIVMSG_EXAMPLE)?;
         let test_input = io::Cursor::new(test_input);
 
         // I understand why ServerMessage doesn't impl PartialEq but it makes
         // testing difficult.
         let expected: Vec<_> = [msg.clone(), pong_msg, msg].into();
-        let result: Vec<_> = filein_to_smsg(test_input).map(|s| s.unwrap()).collect();
+        let result: Vec<_> = filein_to_smsg(test_input)
+            .map(|s| s.expect("input is valid irc"))
+            .collect();
         assert_eq!(expected.len(), result.len());
         for (res, exp) in expected.into_iter().zip(result) {
             assert_eq!(res.source(), exp.source());
         }
+
+        Ok(())
     }
 
     #[tokio::test]
-    async fn create_stdin_task() {
+    async fn create_stdin_task() -> io::Result<()> {
         use twitch_irc::message::IRCMessage;
-        let irc_msg = IRCMessage::parse(PRIVMSG_EXAMPLE).unwrap();
+        let irc_msg = IRCMessage::parse(PRIVMSG_EXAMPLE).expect("example is valid irc message");
 
         let mut input = vec![];
-        writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
-        writeln!(input, "{}", PRIVMSG_EXAMPLE).unwrap();
+        writeln!(input, "{}", PRIVMSG_EXAMPLE)?;
+        writeln!(input, "{}", PRIVMSG_EXAMPLE)?;
         let input = io::Cursor::new(input);
 
         let (handle, mut incoming) = filein_channel_task_create(input);
-        let first = incoming.recv().await.unwrap();
+        let first = incoming
+            .recv()
+            .await
+            .expect("channel should not be closed yet");
         assert_eq!(first.source(), &irc_msg);
 
-        let second = incoming.recv().await.unwrap();
+        let second = incoming
+            .recv()
+            .await
+            .expect("channel should not be closed yet");
         assert_eq!(second.source(), &irc_msg);
         assert!(incoming.recv().await.is_none());
 
-        handle.await.unwrap();
+        handle.await.expect("task should have run to completion");
+
+        Ok(())
     }
 
     #[tokio::test]
@@ -441,15 +457,15 @@ mod test {
         let (handle, mut out1, mut out2) = receiver_splitter(rx);
         let test_msg = "Hewwo, I am a string";
 
-        tx.send(test_msg).unwrap();
-        let res1 = out1.recv().await.unwrap();
-        let res2 = out2.recv().await.unwrap();
+        tx.send(test_msg).expect("channel is not yet closed");
+        let res1 = out1.recv().await.expect("channel is not yet closed");
+        let res2 = out2.recv().await.expect("channel is not yet closed");
 
         assert_eq!(test_msg, res1);
         assert_eq!(test_msg, res2);
 
         drop(tx);
-        handle.await.unwrap();
+        handle.await.expect("task should have run to completion");
     }
 
     async fn receiver_splitter_drains_side(

@@ -20,19 +20,14 @@ pub async fn log_v0<W: Write>(message: ServerMessage, out: &mut W) -> io::Result
 
 #[tokio::test]
 async fn log_v0_privmsg() -> io::Result<()> {
-    use twitch_irc::irc;
-    use twitch_irc::message::PrivmsgMessage;
+    use crate::test_tools::*;
 
-    let source = irc!["PRIVMSG", "#Orflex", "This is a real irc message, totes"];
-    let expected = format!("{}\n", source.as_raw_irc());
-
-    let example = crate::test_tools::make_privmsg_example();
-    let fake_privmsg = PrivmsgMessage { source, ..example };
-    let fake_privmsg = ServerMessage::Privmsg(fake_privmsg);
+    let fake_privmsg = make_servermsg_from_example();
+    let expected = format!("{}\n", fake_privmsg.as_raw_irc());
 
     let mut output = vec![];
     log_v0(fake_privmsg, &mut output).await?;
-    let output = String::from_utf8(output).unwrap();
+    let output = String::from_utf8(output).expect("input is valid utf8");
 
     assert_eq!(output, expected);
 
