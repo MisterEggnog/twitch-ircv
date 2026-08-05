@@ -17,24 +17,29 @@ use crate::pretty_print::message_handler;
 
 pub type TwitchClient = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
 
-pub async fn init<W, R>(args: Args, stdin: R, stdout: W) -> io::Result<()>
+pub async fn init<W, R>(args: Args, stdin: R, stdout: W) -> anyhow::Result<()>
 where
     W: Write + Send + 'static,
     R: Read + Send + 'static,
 {
     let res = init_no_error_handling(args, stdin, stdout).await;
-    if let Err(e) = res {
-        if e.kind() == io::ErrorKind::BrokenPipe {
-            Ok(())
-        } else {
-            Err(e)
+    if let Err(anyhow_err) = res {
+        match anyhow_err.downcast_ref::<io::Error>() {
+            Some(e) => {
+                if e.kind() == io::ErrorKind::BrokenPipe {
+                    Ok(())
+                } else {
+                    Err(anyhow_err)
+                }
+            }
+            None => Err(anyhow_err),
         }
     } else {
         Ok(())
     }
 }
 
-pub async fn init_no_error_handling<W, R>(args: Args, stdin: R, stdout: W) -> io::Result<()>
+pub async fn init_no_error_handling<W, R>(args: Args, stdin: R, stdout: W) -> anyhow::Result<()>
 where
     W: Write + Send + 'static,
     R: Read + Send + 'static,
@@ -42,8 +47,8 @@ where
     if args.from_stdin {
         let (handle, recv) = filein_channel_task_create(stdin);
         let (handle_res, stdout_result) = tokio::join!(handle, init_with_input(args, recv, stdout));
-        handle_res.expect("filein task should've closed by this point");
-        stdout_result
+        handle_res.expect("filein task should've closed by this point")?;
+        stdout_result?;
     } else {
         let (incoming_messages, client) = build_irc_client();
 
@@ -52,8 +57,10 @@ where
             .expect("Channel name is an invalid format");
         // TODO More gracefuly handle this
 
-        init_with_input(args, incoming_messages, stdout).await
+        init_with_input(args, incoming_messages, stdout).await?;
     }
+
+    Ok(())
 }
 
 async fn init_with_input<W>(
@@ -125,7 +132,10 @@ fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = io::Result<Serve
 
 fn filein_channel_task_create<R: Read + Send + 'static>(
     input: R,
-) -> (JoinHandle<()>, UnboundedReceiver<ServerMessage>) {
+) -> (
+    JoinHandle<anyhow::Result<()>>,
+    UnboundedReceiver<ServerMessage>,
+) {
     let (tx, rx) = mpsc::unbounded_channel();
     let stdin_read_task = tokio::task::spawn_blocking(move || {
         let input = io::BufReader::new(input);
@@ -134,6 +144,7 @@ fn filein_channel_task_create<R: Read + Send + 'static>(
                 break;
             }
         }
+        Ok(())
     });
     (stdin_read_task, rx)
 }
@@ -357,7 +368,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn read_from_stdin() -> io::Result<()> {
+    async fn read_from_stdin() -> anyhow::Result<()> {
         use twitch_irc::message::{AsRawIRC, IRCMessage, ServerMessage};
         let test_args = Args {
             channel_name: String::from("&"),
@@ -423,7 +434,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn create_stdin_task() -> io::Result<()> {
+    async fn create_stdin_task() -> anyhow::Result<()> {
         use twitch_irc::message::IRCMessage;
         let irc_msg = IRCMessage::parse(PRIVMSG_EXAMPLE).expect("example is valid irc message");
 
@@ -446,7 +457,7 @@ mod test {
         assert_eq!(second.source(), &irc_msg);
         assert!(incoming.recv().await.is_none());
 
-        handle.await.expect("task should have run to completion");
+        handle.await.expect("task should have run to completion")?;
 
         Ok(())
     }

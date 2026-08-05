@@ -10,7 +10,7 @@ use clap::Parser;
 use std::io;
 
 #[tokio::main]
-async fn main() -> io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     let args = args::Args::parse();
     setup::init(args, io::stdin(), io::stdout()).await
 }
