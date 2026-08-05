@@ -433,6 +433,34 @@ mod test {
         Ok(())
     }
 
+    #[test]
+    fn smsg_returns_errors() -> io::Result<()> {
+        use twitch_irc::message::IRCParseError;
+
+        let mut input = io::Cursor::new(vec![]);
+        writeln!(input, "=meow")?;
+        input.write(&[214, 211, 0, 8])?;
+        writeln!(input)?;
+        input.rewind()?;
+
+        let mut iter = filein_to_smsg(input);
+        let result = iter.next().expect("Input has at least one line");
+        let result_err = result.expect_err("Line is not valid irc");
+
+        assert!(result_err.downcast::<IRCParseError>().is_ok());
+
+        let result = iter.next().expect("Input has one more line");
+        let result_err = result.expect_err("Line it not valid utf8");
+        let result_err = result_err
+            .downcast::<io::Error>()
+            .expect("Line was invalid utf8");
+        assert_eq!(result_err.kind(), io::ErrorKind::InvalidData);
+
+        assert!(iter.next().is_none());
+
+        Ok(())
+    }
+
     #[tokio::test]
     async fn create_stdin_task() -> anyhow::Result<()> {
         use twitch_irc::message::IRCMessage;
