@@ -117,16 +117,15 @@ fn open_log_file(log_file: &Path, append: bool) -> io::Result<File> {
         .open(log_file)
 }
 
-fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = io::Result<ServerMessage>> {
+fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = anyhow::Result<ServerMessage>> {
+    use anyhow::Context;
     use twitch_irc::message::IRCMessage;
-    // TODO flatten to just return an Err instead of expect
     input.lines().map(|l| {
-        l.map(|raw| {
-            let msg =
-                IRCMessage::parse(raw.as_ref()).expect("Failed to parse input message as IRC");
-            ServerMessage::try_from(msg)
-                .expect("IRC message parsed but was not a valid server message")
-        })
+        l.context("io failed in smsg parse")
+            .map(|raw| IRCMessage::parse(raw.as_ref()).context("Failed to parse string to irc"))
+            .flatten()
+            .map(|msg| ServerMessage::try_from(msg).context("unknown irc command"))
+            .flatten()
     })
 }
 
