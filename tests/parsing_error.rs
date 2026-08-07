@@ -14,13 +14,13 @@ async fn stdin_parsing_error_does_not_panic() -> io::Result<()> {
     let out = io::empty();
 
     let mut input = io::Cursor::new(vec![]);
-    writeln!(input, "waaa")?;
-    writeln!(input, "beans")?;
+    writeln!(input, "=waaa")?;
+    writeln!(input, "=beans")?;
     input.rewind()?;
 
     let result = init(args, input, out)
         .await
-        .expect_err("Input is not valid IRC");
+        .expect_err("Input is designed to not be valid IRC");
 
     assert!(result.downcast::<IRCParseError>().is_ok());
 
