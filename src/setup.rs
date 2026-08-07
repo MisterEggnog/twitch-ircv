@@ -139,7 +139,8 @@ fn filein_channel_task_create<R: Read + Send + 'static>(
     let stdin_read_task = tokio::task::spawn_blocking(move || {
         let input = io::BufReader::new(input);
         for msg in filein_to_smsg(input) {
-            if tx.send(msg.expect("Failed to parse irc message")).is_err() {
+            let msg = msg?;
+            if tx.send(msg).is_err() {
                 break;
             }
         }
