@@ -122,10 +122,10 @@ fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = anyhow::Result<S
     use twitch_irc::message::IRCMessage;
     input.lines().map(|l| {
         l.context("io failed in smsg parse")
-            .map(|raw| IRCMessage::parse(raw.as_ref()).context("Failed to parse string to irc"))
-            .flatten()
-            .map(|msg| ServerMessage::try_from(msg).context("unknown irc command"))
-            .flatten()
+            .and_then(|raw| {
+                IRCMessage::parse(raw.as_ref()).context("Failed to parse string to irc")
+            })
+            .and_then(|msg| ServerMessage::try_from(msg).context("unknown irc command"))
     })
 }
 
