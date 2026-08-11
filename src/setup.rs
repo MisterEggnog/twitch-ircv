@@ -439,7 +439,7 @@ mod test {
 
         let mut input = io::Cursor::new(vec![]);
         writeln!(input, "=meow")?;
-        input.write(&[214, 211, 0, 8])?;
+        input.write_all(&[214, 211, 0, 8])?;
         writeln!(input)?;
         input.rewind()?;
 
