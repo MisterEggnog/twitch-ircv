@@ -1,3 +1,4 @@
+use anyhow::Context;
 use chrono::prelude::*;
 use function_name::named;
 use std::env;
@@ -119,7 +120,6 @@ fn open_log_file(log_file: &Path, append: bool) -> io::Result<File> {
 }
 
 fn filein_to_smsg<R: BufRead>(input: R) -> impl Iterator<Item = anyhow::Result<ServerMessage>> {
-    use anyhow::Context;
     use twitch_irc::message::IRCMessage;
     input.lines().map(|l| {
         l.context("io failed in smsg parse")
@@ -196,7 +196,13 @@ pub fn build_irc_client() -> (UnboundedReceiver<ServerMessage>, TwitchClient) {
 
 // Sub function so that it can be tested without connecting
 fn handle_join_errors(err: ValidateError) -> anyhow::Error {
-    todo!()
+    if let ValidateError::InvalidCharacter { ref login, .. } = err
+        && login == "-"
+    {
+        anyhow::Error::from(err).context("Unable to connect to the channel. If you want read irc messages from stdin use the argument `--from-stdin`")
+    } else {
+        anyhow::Error::from(err).context("Unable to connect to the channel")
+    }
 }
 
 pub fn setup_output<W: Write + Send + 'static>(
