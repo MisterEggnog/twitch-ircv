@@ -9,6 +9,7 @@ use tokio::task::JoinHandle;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::ServerMessage;
+use twitch_irc::validate::Error as ValidateError;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
 use crate::args::Args;
@@ -191,6 +192,11 @@ where
 pub fn build_irc_client() -> (UnboundedReceiver<ServerMessage>, TwitchClient) {
     let config = ClientConfig::default();
     TwitchClient::new(config)
+}
+
+// Sub function so that it can be tested without connecting
+fn handle_join_errors(err: ValidateError) -> anyhow::Error {
+    todo!()
 }
 
 pub fn setup_output<W: Write + Send + 'static>(
@@ -531,5 +537,45 @@ mod test {
         let (handle, out1, out2) = receiver_splitter(rx);
         receiver_splitter_drains_side(tx, out2, out1).await;
         handle.await.expect("task failed");
+    }
+
+    #[test]
+    fn handle_client_join_error_two_cases() {
+        let error = ValidateError::InvalidCharacter {
+            login: String::from("-"),
+            position: 0,
+            character: '-',
+        };
+        let e = handle_join_errors(error);
+        let e = format!("{}", e);
+        assert!(
+            e.contains("--from-stdin"),
+            "if login is `-` then mention that you need to used this command for stdin"
+        );
+
+        let error = ValidateError::InvalidCharacter {
+            login: String::from("="),
+            position: 0,
+            character: '=',
+        };
+        let e = handle_join_errors(error);
+        let e = format!("{}", e);
+        assert!(
+            !e.contains("--from-stdin"),
+            "Other invalid characters should use normal err message"
+        );
+
+        let error = ValidateError::TooLong {
+            login: String::from("aaaaa"),
+        };
+        let e = handle_join_errors(error);
+        let e = format!("{}", e);
+        assert!(
+            !e.contains("--from-stdin"),
+            "too long login names should use normal err message"
+        );
+
+        // TooShort is at least one character long so this variant should
+        // never be reached.
     }
 }
