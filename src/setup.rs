@@ -54,10 +54,10 @@ where
     } else {
         let (incoming_messages, client) = build_irc_client();
 
-        client
-            .join(args.channel_name.clone())
-            .expect("Channel name is an invalid format");
-        // TODO More gracefuly handle this
+        if let Err(e) = client.join(args.channel_name.clone()) {
+            let e = handle_join_errors(e);
+            return Err(e);
+        }
 
         init_with_input(args, incoming_messages, stdout).await?;
     }
