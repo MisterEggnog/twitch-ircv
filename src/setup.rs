@@ -250,9 +250,6 @@ pub fn setup_fancy_output<W: Write + Send + 'static>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_tools::PONG_MSG_EXAMPLE;
-    use crate::test_tools::PRIVMSG_EXAMPLE;
-    use crate::test_tools::WriteLockBuf;
     use crate::test_tools::*;
 
     #[tokio::test]
