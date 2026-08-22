@@ -69,7 +69,7 @@ async fn init_with_input<W>(
     args: Args,
     incoming_messages: UnboundedReceiver<ServerMessage>,
     stdout: W,
-) -> io::Result<()>
+) -> anyhow::Result<()>
 where
     W: Write + Send + 'static,
 {
@@ -80,7 +80,10 @@ where
         write_with_log_writer(incoming_messages, stdout, file).await
     } else {
         let join_handle = setup_output(incoming_messages, &args, stdout);
-        join_handle.await.expect("setup output task failed")
+        join_handle
+            .await
+            .expect("setup output task failed")
+            .context("stdout")
     }
 }
 
@@ -89,7 +92,7 @@ async fn write_with_log_writer<W1, W2>(
     incoming_messages: UnboundedReceiver<ServerMessage>,
     stdout: W1,
     mut log: W2,
-) -> io::Result<()>
+) -> anyhow::Result<()>
 where
     W1: Write + Send + 'static,
     W2: Write + Send + 'static,
@@ -107,8 +110,12 @@ where
         "Receiver splitter task failed in ",
         function_name!()
     ));
-    task2.expect(concat!("log file task failed in ", function_name!()))?;
-    task3.expect(concat!("stdout task failed in ", function_name!()))
+    task2
+        .expect(concat!("log file task failed in ", function_name!()))
+        .context("log file")?;
+    task3
+        .expect(concat!("stdout task failed in ", function_name!()))
+        .context("stdout")
 }
 
 fn open_log_file(log_file: &Path, append: bool) -> io::Result<File> {
@@ -369,6 +376,9 @@ mod test {
         let result = write_with_log_writer(messages, stdout, log).await;
 
         let error = result.expect_err("writer should fail with StorageFull");
+        let error = error
+            .downcast::<io::Error>()
+            .expect("The only error this should return is io");
         assert_eq!(error.kind(), io::ErrorKind::StorageFull);
 
         messenger_task
