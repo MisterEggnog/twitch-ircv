@@ -1,25 +1,13 @@
 use std::fs::File;
 use std::io;
-use std::io::prelude::*;
 
 use twitch_ircv::args::Args;
 use twitch_ircv::setup::init;
-
-struct PanicsBrokenPipe;
-
-impl Write for PanicsBrokenPipe {
-    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
-        Err(From::from(io::ErrorKind::BrokenPipe))
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
+use twitch_ircv::test_tools::WriteIoError;
 
 #[tokio::test]
 #[allow(unused_must_use)]
-async fn cleanly_exits_with_broken_pipe() -> io::Result<()> {
+async fn cleanly_exits_with_broken_pipe() -> anyhow::Result<()> {
     let fake_stdin = File::open("tests/irc_data_no_ping")?;
     let args = Args {
         from_stdin: true,
@@ -27,5 +15,5 @@ async fn cleanly_exits_with_broken_pipe() -> io::Result<()> {
     };
 
     // We do not need to handle this result as it will bubble up
-    init(args, fake_stdin, PanicsBrokenPipe).await
+    init(args, fake_stdin, WriteIoError(io::ErrorKind::BrokenPipe)).await
 }

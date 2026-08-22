@@ -1,7 +1,7 @@
 use std::env;
+use twitch_irc::TwitchIRCClient;
 use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::message::ServerMessage;
-use twitch_irc::TwitchIRCClient;
 use twitch_irc::{ClientConfig, SecureTCPTransport};
 
 pub async fn for_each_message<F>(func: F)

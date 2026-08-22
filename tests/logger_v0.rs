@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::Cursor;
+use std::io::prelude::*;
 
 use twitch_irc::message::{IRCMessage, ServerMessage};
 
@@ -19,7 +19,7 @@ fn valid_irc(s: &str) -> bool {
 async fn test_no_ping() -> Result<(), Box<dyn Error>> {
     let f = File::open("tests/irc_data_no_ping")?;
     let f = BufReader::new(f);
-    let irc_lines: Vec<String> = f.lines().map(|s| s.unwrap()).collect();
+    let irc_lines: Vec<String> = f.lines().map(|s| s.expect("input is valid utf8")).collect();
 
     let valid_irc_lines: Vec<IRCMessage> = irc_lines
         .iter()
@@ -31,14 +31,15 @@ async fn test_no_ping() -> Result<(), Box<dyn Error>> {
     for line in irc_lines {
         let msg = IRCMessage::parse(&line)?;
         let msg = ServerMessage::try_from(msg)?;
-        log_v0(msg, &mut buff).await;
+        log_v0(msg, &mut buff).await?;
     }
 
     buff.set_position(0);
 
     let output_lines: Vec<IRCMessage> = buff
         .lines()
-        .map(|s| IRCMessage::parse(&s.unwrap()).expect("This should be valid irc"))
+        .map(|l| l.expect("input is valid utf8"))
+        .map(|s| IRCMessage::parse(&s).expect("This should be valid irc"))
         .collect();
 
     assert_eq!(output_lines.len(), valid_irc_lines.len());

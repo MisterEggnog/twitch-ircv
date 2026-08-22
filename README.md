@@ -10,7 +10,7 @@ This program is built on the [twitch-irc] library, all credit should go to them.
 Seriously, this program is basically a wrapper around this library.
 
 ### License
-    Copyright (C) 2024  Josiah Baldwin
+    Copyright (C) 2026  Josiah Baldwin
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
